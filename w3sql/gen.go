@@ -57,7 +57,7 @@ func normalizeSQLString(s string) string {
 	return spaces.ReplaceAllLiteralString(s, " ")
 }
 
-func needWhere(baseSQL string) bool {
+func NeedsWhere(baseSQL string) bool {
 	s := normalizeSQLString(baseSQL)
 	s = removeRoundBracketsContents(s)
 
@@ -74,9 +74,9 @@ func (cq *SelectQuery) SQL(baseSQL string, needWherePrepared ...bool) ([]string,
 	if cq.Conditions != "" {
 		nw := false
 		if len(needWherePrepared) > 0 {
-			nw = needWherePrepared[0] // вычисление needWhere каждый раз может быть расточительным
+			nw = needWherePrepared[0] // вычисление NeedsWhere каждый раз может быть расточительным
 		} else {
-			nw = needWhere(baseSQL)
+			nw = NeedsWhere(baseSQL)
 		}
 		if nw { // where ... from ... join
 			result += "\nwhere " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]

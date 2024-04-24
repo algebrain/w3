@@ -24,7 +24,7 @@ type AtomaryCondition struct {
 	Op    string
 }
 
-type ComplexCondition struct {
+type CompoundCondition struct {
 	Op    string
 	Query []RawCondition
 }
@@ -57,12 +57,6 @@ type CompiledQueryParams struct {
 	Params    map[string]any //дополнительные параметры запроса, вне логики SQL
 }
 
-type CompiledQuery struct {
-	Insert *InsertQuery
-	Update *UpdateQuery
-	Select *SelectQuery
-}
-
 func (cs *compilerSession) getSearchField(fname string, ftype string) (string, bool) {
 	var (
 		field string
@@ -71,6 +65,10 @@ func (cs *compilerSession) getSearchField(fname string, ftype string) (string, b
 
 	if field, ok = cs.fieldmap[fname]; !ok {
 		return "", false
+	}
+
+	if field == "" {
+		field = fname
 	}
 
 	switch ftype {
@@ -136,7 +134,7 @@ func (q *AtomaryCondition) compile(cs *compilerSession) (string, error) {
 	}
 }
 
-func (q *ComplexCondition) compile(cs *compilerSession) (string, error) {
+func (q *CompoundCondition) compile(cs *compilerSession) (string, error) {
 	parts := make([]string, len(q.Query))
 	for i, qp := range q.Query {
 		s, err := qp.compile(cs)
@@ -173,5 +171,9 @@ func (q *SortQuery) compile(cs *compilerSession) (string, error) {
 	if field, ok = cs.fieldmap[q.Field]; !ok {
 		return "", errors.New("w3sql: no such field name " + q.Field)
 	}
+	if field == "" {
+		field = q.Field
+	}
+
 	return fmt.Sprintf("%v %v", field, q.Direction), nil
 }

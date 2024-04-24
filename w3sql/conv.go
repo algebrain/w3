@@ -107,7 +107,7 @@ func convList(t []any) (l any, err error) {
 
 func convValueElem(t any, tp string) (any, error) {
 	switch tp {
-	case "text", "textis", "list":
+	case "text", "textis", "list", "string":
 		return fmt.Sprint(t), nil
 	case "number", "int", "float":
 		return convNumber(t)
@@ -125,7 +125,7 @@ func convValue_(ts []any, tp string) (any, error) {
 		return nil, errors.New("no value")
 	}
 	switch tp {
-	case "text", "number", "int", "float", "date", "datetime", "textis":
+	case "text", "string", "number", "int", "float", "date", "datetime", "textis":
 		return convValueElem(ts[0], tp)
 	case "list", "bool":
 		return convList(ts)
