@@ -68,7 +68,7 @@ func needWhere(baseSQL string) bool {
 	return where < from || where < join || where == -1
 }
 
-func (cq *SelectQuery) SQL(baseSQL string, needWherePrepared ...bool) ([]string, map[string]any) {
+func (cq *SelectQuery) SQL(baseSQL string, needWherePrepared ...bool) ([]string, map[string]any, error) {
 	result := baseSQL
 
 	if cq.Conditions != "" {
@@ -97,7 +97,7 @@ func (cq *SelectQuery) SQL(baseSQL string, needWherePrepared ...bool) ([]string,
 		result += "\norder by " + strings.Join(cq.Order, ", ")
 	}
 
-	return []string{result}, cq.SQLParams
+	return []string{result}, cq.SQLParams, nil
 }
 
 func (cq *SelectQuery) NoLimitOffset() *SelectQuery {
@@ -119,7 +119,7 @@ func (cq *SelectQuery) NoConditions() *SelectQuery {
 	return &result
 }
 
-func (q *InsertQuery) SQL(baseSQL string) ([]string, map[string]any) {
+func (q *InsertQuery) SQL(baseSQL string) ([]string, map[string]any, error) {
 	result := make([]string, len(q.Pairs))
 	for i, pair := range q.Pairs {
 		values := make([]string, len(pair.Values))
@@ -130,10 +130,10 @@ func (q *InsertQuery) SQL(baseSQL string) ([]string, map[string]any) {
 			fmt.Sprintf(" (%s)", strings.Join(pair.Fields, ",")) +
 			fmt.Sprintf(" values (%s)", strings.Join(values, ","))
 	}
-	return result, q.SQLParams
+	return result, q.SQLParams, nil
 }
 
-func (q *UpdateQuery) SQL(baseSQL string) ([]string, map[string]any) {
+func (q *UpdateQuery) SQL(baseSQL string) ([]string, map[string]any, error) {
 	result := make([]string, 0, len(q.Pairs))
 	for k, pairs := range q.Pairs {
 		updates := make([]string, len(pairs))
@@ -145,5 +145,39 @@ func (q *UpdateQuery) SQL(baseSQL string) ([]string, map[string]any) {
 			fmt.Sprintf(" where %s=%s;\n", q.IDField, ":"+k),
 		)
 	}
-	return result, q.SQLParams
+	return result, q.SQLParams, nil
+}
+
+type IsDelAllowedFunc = func(any) error
+
+func (q *DeleteQuery) SQL(baseSQL string, isDelAllowed ...IsDelAllowedFunc) ([]string, map[string]any, error) {
+	if len(isDelAllowed) > 0 {
+		for v, _ := range q.AllValues {
+			if err := isDelAllowed[0](v); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	result := make([]string, 0, 10)
+	for table, deletes := range q.Is {
+		for field, val := range deletes {
+			result = append(result, fmt.Sprintf("delete from %s where %s=%s", table, field, val))
+		}
+	}
+
+	for table, deletes := range q.In {
+		for field, val := range deletes {
+			result = append(
+				result,
+				fmt.Sprintf(
+					"delete from %s where %s in (%s)",
+					table,
+					field,
+					strings.Join(val, ","),
+				),
+			)
+		}
+	}
+
+	return result, q.SQLParams, nil
 }

@@ -170,7 +170,7 @@ func (q *Query) CompileUpdate(
 			if f == "" {
 				f = field
 			}
-			v, ok := upd[f]
+			v, ok := upd[field]
 			if !ok {
 				v = nil
 			}

@@ -48,6 +48,7 @@ type Query struct {
 	Sort   []SortQuery
 	Insert []Record
 	Update []Record
+	Delete []Record
 	Params map[string]any //дополнительные параметры запроса, вне логики SQL
 }
 
