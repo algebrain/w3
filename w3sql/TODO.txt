@@ -2,3 +2,4 @@
 - test needWherePrepared
 - code reading Query from json
 - test NoLimitOffset, NoOrder, NoConditions
+- test unexisting fields

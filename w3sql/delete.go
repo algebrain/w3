@@ -1,6 +1,7 @@
 package w3sql
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -61,7 +62,7 @@ func (q *Query) CompileDelete(
 		for field, v := range del {
 			fm, ok := fieldmap[field]
 			if !ok {
-				continue
+				return nil, errors.New("w3sql: no such field " + field)
 			}
 			for table, f := range fm {
 				if f == "" {
