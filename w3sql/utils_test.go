@@ -24,3 +24,13 @@ func TestRemoveRoundBracketsContents(t *testing.T) {
 		fmt.Printf("out: <%s>\n", ss)
 	}
 }
+
+func TestEqualSQLStrings(t *testing.T) {
+	s := "\n abc\n\r\tabc  \t\r\n"
+	if !equalSQLStrings(s, "abc abc") {
+		t.Fatal("equality expected")
+	}
+	if equalSQLStrings(s, "abc vabc") {
+		t.Fatal("inequality expected")
+	}
+}
