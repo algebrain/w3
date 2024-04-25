@@ -147,45 +147,23 @@ func (q *UpdateQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) 
 
 type IsDelAllowedFunc = func(any) error
 
-func (q *DeleteQuery) SQL(baseSQL *SQLString, isDelAllowed ...IsDelAllowedFunc) ([]string, map[string]any, error) {
-	if len(isDelAllowed) > 0 {
-		for v, _ := range q.AllValues {
-			if err := isDelAllowed[0](v); err != nil {
-				return nil, nil, err
-			}
-		}
-	}
-	result := make([]string, 0, 10)
-	isBaseAdded := false
+func (q *DeleteQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
+	result := make([]string, 0, len(q.Tables))
 	prefix := baseSQL.String()
-	if prefix != "" {
-		prefix += "\n"
-	}
-	for table, deletes := range q.Is {
-		for field, val := range deletes {
-			ns := fmt.Sprintf("delete from %s where %s=%s", table, field, val)
-			if !isBaseAdded {
-				ns = prefix + ns
-				isBaseAdded = true
-			}
-			result = append(result, ns)
-		}
-	}
+	isBaseAdded := prefix == ""
 
-	for table, deletes := range q.In {
-		for field, val := range deletes {
-			ns := fmt.Sprintf(
-				"delete from %s where %s in (%s)",
-				table,
-				field,
-				strings.Join(val, ","),
-			)
-			if !isBaseAdded {
-				ns = prefix + ns
-				isBaseAdded = true
-			}
-			result = append(result, ns)
+	for _, tab := range q.Tables {
+		ns := fmt.Sprintf(
+			"delete from %s where %s in (%s)",
+			tab.TableName,
+			tab.IDName,
+			strings.Join(q.ToDelete, ","),
+		)
+		if !isBaseAdded {
+			ns = prefix + "\n" + ns
+			isBaseAdded = true
 		}
+		result = append(result, ns)
 	}
 
 	return result, q.SQLParams, nil

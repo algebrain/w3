@@ -1,27 +1,31 @@
 package w3sql
 
 import (
-	"errors"
 	"fmt"
 )
 
+type TablePair struct {
+	TableName string
+	IDName    string
+}
+
 type DeleteQuery struct {
 	CompiledQueryParams
-	Is        map[string]map[string]string
-	In        map[string]map[string][]string
+	ToDelete  []string
+	Tables    []TablePair
 	AllValues map[string]bool
 }
 
+type DeleteTransform func(id any) (any, error)
+
 func (cs *compilerSession) compileDeletePair(
-	field string,
-	value any,
-	isInsert bool,
+	id any,
 	allValues map[string]bool,
-	transform ...ValueTransform,
+	transform ...DeleteTransform,
 ) (string, bool, error) {
-	v := value
+	v := id
 	for _, fn := range transform {
-		v, err := fn(isInsert, field, v)
+		v, err := fn(v)
 		if err != nil {
 			return "", false, err
 		}
@@ -30,7 +34,7 @@ func (cs *compilerSession) compileDeletePair(
 		}
 	}
 
-	alias := fmt.Sprintf("ui%s%d", field, cs.varCounter)
+	alias := fmt.Sprintf("ui%d", cs.varCounter)
 	cs.varCounter++
 	cs.params[alias] = v
 	allValues[fmt.Sprint(v)] = true
@@ -39,8 +43,8 @@ func (cs *compilerSession) compileDeletePair(
 
 func (q *Query) CompileDelete(
 	sqlSyntax string,
-	fieldmap map[string]map[string]string,
-	transform ...ValueTransform,
+	tables []TablePair,
+	transform ...DeleteTransform,
 ) (*DeleteQuery, error) {
 	if q.Delete == nil {
 		return nil, nil
@@ -49,61 +53,25 @@ func (q *Query) CompileDelete(
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
 		},
-		Is:        map[string]map[string]string{},
-		In:        map[string]map[string][]string{},
+		ToDelete:  make([]string, len(q.Delete)),
+		Tables:    tables,
 		AllValues: map[string]bool{},
 	}
+
 	cs := &compilerSession{
 		sqlSyntax: sqlSyntax,
 		params:    map[string]any{},
 	}
 
-	for _, del := range q.Delete {
-		for field, v := range del {
-			fm, ok := fieldmap[field]
-			if !ok {
-				return nil, errors.New("w3sql: no such field " + field)
-			}
-			for table, f := range fm {
-				if f == "" {
-					f = field
-				}
-				var vv []any
-				if vv, ok = v.([]any); !ok {
-					aliases := make([]string, len(vv))
-					for i, v := range vv {
-						alias, ok, err := cs.compileDeletePair(table+"_"+field, v, false, result.AllValues, transform...)
-						if err != nil {
-							return nil, err
-						}
-						if !ok {
-							continue
-						}
-						aliases[i] = alias
-					}
-					mp := result.In[table]
-					if mp == nil {
-						mp = map[string][]string{}
-						result.In[table] = mp
-					}
-					mp[f] = aliases
-				} else {
-					alias, ok, err := cs.compileDeletePair(table+"_"+field, v, false, result.AllValues, transform...)
-					if err != nil {
-						return nil, err
-					}
-					if !ok {
-						continue
-					}
-					mp := result.Is[table]
-					if mp == nil {
-						mp = map[string]string{}
-						result.Is[table] = mp
-					}
-					mp[f] = alias
-				}
-			}
+	for i, id := range q.Delete {
+		alias, ok, err := cs.compileDeletePair(id, result.AllValues, transform...)
+		if err != nil {
+			return nil, err
 		}
+		if !ok {
+			continue
+		}
+		result.ToDelete[i] = ":" + alias
 	}
 
 	result.CompiledQueryParams.SQLParams = cs.params

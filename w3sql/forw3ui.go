@@ -39,8 +39,6 @@ type QueryParam struct {
 	Val  any
 }
 
-type Record map[string]any
-
 type Query struct {
 	Limit  *int
 	Offset *int
@@ -54,7 +52,7 @@ type Query struct {
 		Fields []string
 		Values [][]any
 	}
-	Delete []Record
+	Delete []any
 	Params map[string]any //дополнительные параметры запроса, вне логики SQL
 }
 

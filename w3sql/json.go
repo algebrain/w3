@@ -25,7 +25,7 @@ type jsonQuery struct {
 		Fields []string
 		Values [][]any
 	}
-	Delete []Record
+	Delete []any
 	Params map[string]any //дополнительные параметры запроса, вне логики SQL
 }
 
