@@ -68,11 +68,11 @@ func NeedsWhere(baseSQL string) bool {
 	return where < from || where < join || where == -1
 }
 
-func (cq *SelectQuery) SQL(baseSQL SQLString) ([]string, map[string]any, error) {
-	result := baseSQL.data
+func (cq *SelectQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
+	result := baseSQL.String()
 
 	if cq.Conditions != "" {
-		if baseSQL.needsWhere { // where ... from ... join
+		if baseSQL.NeedsWhere() { // where ... from ... join
 			result += "\nwhere " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
 		} else {
 			result += "\nand " + cq.Conditions + " "
@@ -113,28 +113,28 @@ func (cq *SelectQuery) NoConditions() *SelectQuery {
 	return &result
 }
 
-func (q *InsertQuery) SQL(baseSQL SQLString) ([]string, map[string]any, error) {
+func (q *InsertQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
 	result := make([]string, len(q.Pairs))
 	for i, pair := range q.Pairs {
 		values := make([]string, len(pair.Values))
 		for j, v := range pair.Values {
 			values[j] = fmt.Sprint(v)
 		}
-		result[i] = baseSQL.data +
+		result[i] = baseSQL.String() +
 			fmt.Sprintf(" (%s)", strings.Join(pair.Fields, ",")) +
 			fmt.Sprintf(" values (%s)", strings.Join(values, ","))
 	}
 	return result, q.SQLParams, nil
 }
 
-func (q *UpdateQuery) SQL(baseSQL SQLString) ([]string, map[string]any, error) {
+func (q *UpdateQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
 	result := make([]string, 0, len(q.Pairs))
 	for k, pairs := range q.Pairs {
 		updates := make([]string, len(pairs))
 		for j, p := range pairs {
 			updates[j] = fmt.Sprintf("%s=%v", p.Field, p.Val)
 		}
-		result = append(result, baseSQL.data+" "+
+		result = append(result, baseSQL.String()+" "+
 			strings.Join(updates, ",")+
 			fmt.Sprintf(" where %s=%s;\n", q.IDField, ":"+k),
 		)
@@ -144,7 +144,7 @@ func (q *UpdateQuery) SQL(baseSQL SQLString) ([]string, map[string]any, error) {
 
 type IsDelAllowedFunc = func(any) error
 
-func (q *DeleteQuery) SQL(baseSQL SQLString, isDelAllowed ...IsDelAllowedFunc) ([]string, map[string]any, error) {
+func (q *DeleteQuery) SQL(baseSQL *SQLString, isDelAllowed ...IsDelAllowedFunc) ([]string, map[string]any, error) {
 	if len(isDelAllowed) > 0 {
 		for v, _ := range q.AllValues {
 			if err := isDelAllowed[0](v); err != nil {

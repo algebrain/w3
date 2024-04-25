@@ -34,3 +34,13 @@ func TestEqualSQLStrings(t *testing.T) {
 		t.Fatal("inequality expected")
 	}
 }
+
+func TestSQLStringTypeNil(t *testing.T) {
+	x := (*SQLString)(nil)
+	if x.String() != "" {
+		t.Fatal("empty string result expected")
+	}
+	if x.NeedsWhere() != true {
+		t.Fatal("unexpected value for 'NeedsWhere'")
+	}
+}
