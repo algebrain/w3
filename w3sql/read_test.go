@@ -7,24 +7,24 @@ import (
 	"testing"
 )
 
+var atomaryJSON = `{
+	"Offset": 20,
+	"Limit": 10,
+	"Sort": [{"Field": "name", "Dir": "desc"}],
+	"Search": {
+		"Field": "age", 
+		"Type": "int", 
+		"Val": 23, 
+		"Op": "<="
+	}
+}`
+
 func TestCompileAtomarySelect(t *testing.T) {
-	limit := 10
-	offset := 20
-	q := Query{
-		Limit:  &limit,
-		Offset: &offset,
-		Search: &AtomaryCondition{
-			Field: "age",
-			Type:  "int",
-			Val:   23,
-			Op:    "<=",
-		},
-		Sort: []SortQuery{
-			SortQuery{
-				Field: "name",
-				Dir:   "desc",
-			},
-		},
+	s := atomaryJSON
+	var q Query
+	err := json.Unmarshal([]byte(s), &q)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	cq, err := q.CompileSelect("sqlite", map[string]string{"age": "age::int", "name": ""})
@@ -95,36 +95,37 @@ order by name DESC`
 	}
 }
 
-func TestCompileCompoundSelect(t *testing.T) {
-	s := `{
-		"Offset": 20,
-		"Limit": 10,
-		"Sort": [{"Field": "name", "Dir": "desc"}],
-		"Search": {
-			"Op": "and",
-			"Query": [
-				{"Field": "age", "Type": "int", "Val": 23, "Op": "<="},
-				{
-					"Op": "or",
-					"Query": [
-						{
-							"Field": "name",
-							"Type":  "string",
-							"Val": "Bob",
-							"Op":    "contains"
-						},
-						{
-							"Field": "name",
-							"Type":  "string",
-							"Val": "Alice",
-							"Op":    "starts with"
-						}
-					]
-				}
-			]
-		}
-	}`
+var compoundJSON = `{
+	"Offset": 20,
+	"Limit": 10,
+	"Sort": [{"Field": "name", "Dir": "desc"}],
+	"Search": {
+		"Op": "and",
+		"Query": [
+			{"Field": "age", "Type": "int", "Val": 23, "Op": "<="},
+			{
+				"Op": "or",
+				"Query": [
+					{
+						"Field": "name",
+						"Type":  "string",
+						"Val": "Bob",
+						"Op":    "contains"
+					},
+					{
+						"Field": "name",
+						"Type":  "string",
+						"Val": "Alice",
+						"Op":    "starts with"
+					}
+				]
+			}
+		]
+	}
+}`
 
+func TestCompileCompoundSelect(t *testing.T) {
+	s := compoundJSON
 	var q Query
 	err := json.Unmarshal([]byte(s), &q)
 	if err != nil {
@@ -206,4 +207,86 @@ order by name DESC`
 			fmt.Sprintf("<%s>", expectedQS),
 		)
 	}
+}
+
+func TestCompileNo(t *testing.T) {
+	s := atomaryJSON
+	var q Query
+	err := json.Unmarshal([]byte(s), &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cq, err := q.CompileSelect("sqlite", map[string]string{"age": "age::int", "name": ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	base := NewSQLString("select * from students")
+	qs, p, err := cq.NoConditions().SQL(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(qs) != 1 {
+		t.Fatal("1 sql query expected, got", len((qs)))
+	}
+	fmt.Println("Query:", qs[0])
+	fmt.Println("Params:", p)
+
+	expectedQS := `select * from students
+limit 10
+offset 20
+order by name DESC`
+	if !equalSQLStrings(expectedQS, qs[0]) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0]),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+
+	qs, p, err = cq.NoLimitOffset().SQL(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(qs) != 1 {
+		t.Fatal("1 sql query expected, got", len((qs)))
+	}
+	fmt.Println("Query:", qs[0])
+	fmt.Println("Params:", p)
+	expectedQS = `select * from students
+where (age::int<=:sqv0)
+order by name DESC`
+	if !equalSQLStrings(expectedQS, qs[0]) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0]),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+
+	qs, p, err = cq.NoConditions().SQL(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(qs) != 1 {
+		t.Fatal("1 sql query expected, got", len((qs)))
+	}
+	fmt.Println("Query:", qs[0])
+	fmt.Println("Params:", p)
+	expectedQS = `select * from students
+limit 10
+offset 20
+order by name DESC`
+	if !equalSQLStrings(expectedQS, qs[0]) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0]),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+
 }
