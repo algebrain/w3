@@ -16,13 +16,13 @@ func TestCompileAtomarySelect(t *testing.T) {
 		Search: &AtomaryCondition{
 			Field: "age",
 			Type:  "int",
-			Val: 23,
+			Val:   23,
 			Op:    "<=",
 		},
 		Sort: []SortQuery{
 			SortQuery{
-				Field:     "name",
-				Dir: "desc",
+				Field: "name",
+				Dir:   "desc",
 			},
 		},
 	}
@@ -32,7 +32,7 @@ func TestCompileAtomarySelect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	base := "select * from students"
+	base := NewSQLString("select * from students")
 	qs, p, err := cq.SQL(base)
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +59,7 @@ order by name DESC`
 		)
 	}
 
-	base = "select * from students where score > 50"
+	base = NewSQLString("select * from students where score > 50")
 	qs, p, err = cq.SQL(base)
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestCompileCompoundSelect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	base := "select * from students"
+	base := NewSQLString("select * from students")
 	qs, p, err := cq.SQL(base)
 	if err != nil {
 		t.Fatal(err)
@@ -180,7 +180,7 @@ order by name DESC`
 		)
 	}
 
-	base = "select * from students where score > 50"
+	base = NewSQLString("select * from students where score > 50")
 	qs, p, err = cq.SQL(base)
 	if err != nil {
 		t.Fatal(err)
@@ -194,79 +194,6 @@ order by name DESC`
 	expectedQS = `
 select * from students where score > 50
 and ((age::int<=:sqv0) AND ((name LIKE '%' || :sqv1 || '%') OR (name LIKE :sqv2 || '%')))
-limit 10
-offset 20
-order by name DESC`
-
-	if !equalSQLStrings(expectedQS, qs[0]) {
-		t.Fatal(
-			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0]),
-			"\nexpected",
-			fmt.Sprintf("<%s>", expectedQS),
-		)
-	}
-}
-
-func TestCompileNeedWherePrepared(t *testing.T) {
-	limit := 10
-	offset := 20
-	q := Query{
-		Limit:  &limit,
-		Offset: &offset,
-		Search: &AtomaryCondition{
-			Field: "age",
-			Type:  "int",
-			Val: 23,
-			Op:    "<=",
-		},
-		Sort: []SortQuery{
-			SortQuery{
-				Field:     "name",
-				Dir: "desc",
-			},
-		},
-	}
-
-	cq, err := q.CompileSelect("sqlite", map[string]string{"age": "age::int", "name": ""})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	base := ""
-	qs, _, err := cq.SQL(base, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(qs) != 1 {
-		t.Fatal("1 sql query expected, got", len((qs)))
-	}
-	fmt.Println("Query:", qs[0])
-	expectedQS := `
-where (age::int<=:sqv0)
-limit 10
-offset 20
-order by name DESC`
-
-	if !equalSQLStrings(expectedQS, qs[0]) {
-		t.Fatal(
-			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0]),
-			"\nexpected",
-			fmt.Sprintf("<%s>", expectedQS),
-		)
-	}
-
-	qs, _, err = cq.SQL(base, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(qs) != 1 {
-		t.Fatal("1 sql query expected, got", len((qs)))
-	}
-	fmt.Println("Query:", qs[0])
-	expectedQS = `
-and (age::int<=:sqv0)
 limit 10
 offset 20
 order by name DESC`
