@@ -16,13 +16,13 @@ func TestCompileAtomarySelect(t *testing.T) {
 		Search: &AtomaryCondition{
 			Field: "age",
 			Type:  "int",
-			Value: 23,
+			Val: 23,
 			Op:    "<=",
 		},
 		Sort: []SortQuery{
 			SortQuery{
 				Field:     "name",
-				Direction: "desc",
+				Dir: "desc",
 			},
 		},
 	}
@@ -99,24 +99,24 @@ func TestCompileCompoundSelect(t *testing.T) {
 	s := `{
 		"Offset": 20,
 		"Limit": 10,
-		"Sort": [{"Field": "name", "Direction": "desc"}],
+		"Sort": [{"Field": "name", "Dir": "desc"}],
 		"Search": {
 			"Op": "and",
 			"Query": [
-				{"Field": "age", "Type": "int", "Value": 23, "Op": "<="},
+				{"Field": "age", "Type": "int", "Val": 23, "Op": "<="},
 				{
 					"Op": "or",
 					"Query": [
 						{
 							"Field": "name",
 							"Type":  "string",
-							"Value": "Bob",
+							"Val": "Bob",
 							"Op":    "contains"
 						},
 						{
 							"Field": "name",
 							"Type":  "string",
-							"Value": "Alice",
+							"Val": "Alice",
 							"Op":    "starts with"
 						}
 					]
@@ -217,13 +217,13 @@ func TestCompileNeedWherePrepared(t *testing.T) {
 		Search: &AtomaryCondition{
 			Field: "age",
 			Type:  "int",
-			Value: 23,
+			Val: 23,
 			Op:    "<=",
 		},
 		Sort: []SortQuery{
 			SortQuery{
 				Field:     "name",
-				Direction: "desc",
+				Dir: "desc",
 			},
 		},
 	}

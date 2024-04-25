@@ -20,13 +20,13 @@ func (cs *compilerSession) compileOperatorIS(q *AtomaryCondition, not bool) (str
 	} else {
 		return "", errors.New("w3sql: no such field name " + q.Field)
 	}
-	cs.params[vn], err = convValue(q.Value, q.Type)
+	cs.params[vn], err = convValue(q.Val, q.Type)
 	return result, err
 }
 
 func (cs *compilerSession) compileOperatorOR(q *AtomaryCondition) (string, error) {
 	var err error
-	sq, ok := q.Value.([]any)
+	sq, ok := q.Val.([]any)
 	if !ok {
 		return "", errors.New("w3sql: unexpected value of parameter" + q.Field)
 	}
@@ -71,12 +71,12 @@ func (cs *compilerSession) compileOperatorLESS(q *AtomaryCondition, less, orEqua
 	} else {
 		return "", errors.New("w3sql: no such field name " + q.Field)
 	}
-	cs.params[vn], err = convValue(q.Value, q.Type)
+	cs.params[vn], err = convValue(q.Val, q.Type)
 	return result, err
 }
 
 func (cs *compilerSession) compileOperatorBETWEEN(q *AtomaryCondition) (string, error) {
-	rng, ok := q.Value.([]any)
+	rng, ok := q.Val.([]any)
 	if !ok {
 		return "", errors.New("w3sql: wrong value for field " + q.Field)
 	}
@@ -112,7 +112,7 @@ func (cs *compilerSession) compileOperatorReverseIN(q *AtomaryCondition) (string
 	}
 	vn := fmt.Sprintf("sqv%d_1", cs.varCounter)
 	cs.varCounter++
-	cs.params[vn], err = convValueElem(q.Value, q.Type)
+	cs.params[vn], err = convValueElem(q.Val, q.Type)
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +130,7 @@ func (cs *compilerSession) compileOperatorIN(q *AtomaryCondition, not bool) (str
 		return "", errors.New("w3sql: no such field name " + q.Field)
 	}
 
-	if rng, ok = q.Value.([]any); !ok {
+	if rng, ok = q.Val.([]any); !ok {
 		return "", errors.New("w3sql: wrong field value " + q.Field)
 	}
 	searchStr := "("
@@ -168,7 +168,7 @@ func (cs *compilerSession) compileOperatorBEGINS(q *AtomaryCondition, contains, 
 		return "", errors.New("w3sql: no such field name " + q.Field)
 	}
 
-	cs.params[vn], err = convValue(q.Value, q.Type)
+	cs.params[vn], err = convValue(q.Val, q.Type)
 	if err != nil {
 		return "", err
 	}

@@ -138,7 +138,7 @@ func (q *UpdateQuery) SQL(baseSQL string) ([]string, map[string]any, error) {
 	for k, pairs := range q.Pairs {
 		updates := make([]string, len(pairs))
 		for j, p := range pairs {
-			updates[j] = fmt.Sprintf("%s=%v", p.Field, p.Value)
+			updates[j] = fmt.Sprintf("%s=%v", p.Field, p.Val)
 		}
 		result = append(result, baseSQL+" "+
 			strings.Join(updates, ",")+

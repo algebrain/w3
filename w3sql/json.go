@@ -7,7 +7,7 @@ import (
 type jsonCondition struct {
 	Field string
 	Type  string
-	Value any
+	Val any
 	Op    string
 	Query []*jsonCondition
 }
@@ -37,7 +37,7 @@ func (c *jsonCondition) read() RawCondition {
 	return &AtomaryCondition{
 		Field: c.Field,
 		Type:  c.Type,
-		Value: c.Value,
+		Val: c.Val,
 		Op:    c.Op,
 	}
 }

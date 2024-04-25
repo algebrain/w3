@@ -20,7 +20,7 @@ type RawCondition interface {
 type AtomaryCondition struct {
 	Field string
 	Type  string
-	Value any
+	Val any
 	Op    string
 }
 
@@ -31,12 +31,12 @@ type CompoundCondition struct {
 
 type SortQuery struct {
 	Field     string
-	Direction string
+	Dir string
 }
 
 type QueryParam struct {
 	Name  string
-	Value any
+	Val any
 }
 
 type Record map[string]any
@@ -160,9 +160,9 @@ func (q *CompoundCondition) compile(cs *compilerSession) (string, error) {
 }
 
 func (q *SortQuery) compile(cs *compilerSession) (string, error) {
-	q.Direction = strings.ToUpper(q.Direction)
-	if q.Direction != "ASC" && q.Direction != "DESC" {
-		return "", errors.New("w3sql: direction '" + q.Direction + "' is not supported")
+	q.Dir = strings.ToUpper(q.Dir)
+	if q.Dir != "ASC" && q.Dir != "DESC" {
+		return "", errors.New("w3sql: direction '" + q.Dir + "' is not supported")
 	}
 	var (
 		field string
@@ -175,5 +175,5 @@ func (q *SortQuery) compile(cs *compilerSession) (string, error) {
 		field = q.Field
 	}
 
-	return fmt.Sprintf("%v %v", field, q.Direction), nil
+	return fmt.Sprintf("%v %v", field, q.Dir), nil
 }

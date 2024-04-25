@@ -9,24 +9,24 @@ func TestJSON(t *testing.T) {
 	s := `{
 		"Offset": 10,
 		"Limit": 20,
-		"Sort": [{"Field": "name", "Direction": "desc"}],
+		"Sort": [{"Field": "name", "Dir": "desc"}],
 		"Search": {
 			"Op": "and",
 			"Query": [
-				{"Field": "age", "Type": "int", "Value": 23, "Op": "<="},
+				{"Field": "age", "Type": "int", "Val": 23, "Op": "<="},
 				{
 					"Op": "or",
 					"Query": [
 						{
 							"Field": "name",
 							"Type":  "string",
-							"Value": "Bob",
+							"Val": "Bob",
 							"Op":    "contains"
 						},
 						{
 							"Field": "name",
 							"Type":  "string",
-							"Value": "Alice",
+							"Val": "Alice",
 							"Op":    "starts with"
 						}
 					]

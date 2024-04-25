@@ -17,7 +17,7 @@ type InsertQuery struct {
 
 type UpdatePair struct {
 	Field string
-	Value any
+	Val any
 }
 
 type UpdateQuery struct {
@@ -183,7 +183,7 @@ func (q *Query) CompileUpdate(
 			}
 			pairs = append(pairs, UpdatePair{
 				Field: f,
-				Value: ":" + alias,
+				Val: ":" + alias,
 			})
 		}
 		if len(pairs) > 0 {
