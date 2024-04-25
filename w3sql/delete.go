@@ -72,7 +72,7 @@ func (q *Query) CompileDelete(
 				if vv, ok = v.([]any); !ok {
 					aliases := make([]string, len(vv))
 					for i, v := range vv {
-						alias, ok, err := cs.compileDeletePair(table+"_"+f, v, false, result.AllValues, transform...)
+						alias, ok, err := cs.compileDeletePair(table+"_"+field, v, false, result.AllValues, transform...)
 						if err != nil {
 							return nil, err
 						}
@@ -88,7 +88,7 @@ func (q *Query) CompileDelete(
 					}
 					mp[f] = aliases
 				} else {
-					alias, ok, err := cs.compileDeletePair(table+"_"+f, v, false, result.AllValues, transform...)
+					alias, ok, err := cs.compileDeletePair(table+"_"+field, v, false, result.AllValues, transform...)
 					if err != nil {
 						return nil, err
 					}

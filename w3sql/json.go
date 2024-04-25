@@ -7,7 +7,7 @@ import (
 type jsonCondition struct {
 	Field string
 	Type  string
-	Val any
+	Val   any
 	Op    string
 	Query []*jsonCondition
 }
@@ -17,8 +17,14 @@ type jsonQuery struct {
 	Offset *int
 	Search *jsonCondition
 	Sort   []SortQuery
-	Insert []Record
-	Update []Record
+	Insert *struct {
+		Fields []string
+		Values [][]any
+	}
+	Update *struct {
+		Fields []string
+		Values [][]any
+	}
 	Delete []Record
 	Params map[string]any //дополнительные параметры запроса, вне логики SQL
 }
@@ -37,7 +43,7 @@ func (c *jsonCondition) read() RawCondition {
 	return &AtomaryCondition{
 		Field: c.Field,
 		Type:  c.Type,
-		Val: c.Val,
+		Val:   c.Val,
 		Op:    c.Op,
 	}
 }
@@ -50,7 +56,9 @@ func (q *Query) UnmarshalJSON(data []byte) error {
 	}
 	q.Limit = raw.Limit
 	q.Offset = raw.Offset
-	q.Search = raw.Search.read()
+	if raw.Search != nil {
+		q.Search = raw.Search.read()
+	}
 	q.Sort = raw.Sort
 	q.Insert = raw.Insert
 	q.Update = raw.Update

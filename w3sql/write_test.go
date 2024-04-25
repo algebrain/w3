@@ -1,0 +1,142 @@
+package w3sql
+
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
+)
+
+var insertJSON = `{
+	"Insert": {
+		"Fields": ["name", "age", "score"],
+		"Values": [
+			["Vanya", 21, 90],
+			["Masha", 20, 91],
+			["Petya", 19, 92]
+		]
+	}
+}`
+
+var insertBaseSQL = NewSQLString("insert into students")
+
+func TestCompileInsert(t *testing.T) {
+	var q Query
+	err := json.Unmarshal([]byte(insertJSON), &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	transformScore := func(isInsert bool, field string, value any) (any, error) {
+		if field != "score" {
+			return value, nil
+		}
+		return value.(float64) / 100, nil
+	}
+
+	iq, err := q.CompileInsert("sqlite", map[string]string{
+		"name":  "",
+		"age":   "",
+		"score": "score_value",
+	}, transformScore)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	qs, p, err := iq.SQL(insertBaseSQL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(p) != len(iq.Fields)*len(iq.Values) {
+		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(iq.Fields)*len(iq.Values))
+	}
+
+	fmt.Println("QUERY:", qs[0])
+	fmt.Println("PARAMS:", p)
+
+	expectedQS := `
+insert into students (name,age,score_value)
+values
+(:uiname0,:uiage1,:uiscore2),
+(:uiname3,:uiage4,:uiscore5),
+(:uiname6,:uiage7,:uiscore8)`
+	if !equalSQLStrings(expectedQS, qs[0]) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0]),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+}
+
+var updateJSON = `{
+	"Update": {
+		"Fields": ["name", "age", "score", "id"],
+		"Values": [
+			["Vanya", 21, 90, 1],
+			["Masha", 20, 91, 2],
+			["Petya", 19, 92, 3]
+		]
+	}
+}`
+
+var updateBaseSQL = NewSQLString("update students")
+
+func TestCompileUpdate(t *testing.T) {
+	var q Query
+	err := json.Unmarshal([]byte(updateJSON), &q)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	transformScore := func(isInsert bool, field string, value any) (any, error) {
+		if field != "score" {
+			return value, nil
+		}
+		return value.(float64) / 100, nil
+	}
+
+	uq, err := q.CompileUpdate("sqlite", map[string]string{
+		"name":  "",
+		"age":   "",
+		"score": "score_value",
+		"id":    "",
+	}, "id", transformScore)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	qs, p, err := uq.SQL(updateBaseSQL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(p) != len(uq.Fields)*len(uq.Values) {
+		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(uq.Fields)*len(uq.Values))
+	}
+
+	fmt.Println("QUERY:", qs[0])
+	fmt.Println("PARAMS:", p)
+	expectedQS := `
+update students set
+name = c.name,
+age = c.age,
+score_value = c.score_value,
+from (values
+(:uiname0,:uiage1,:uiscore2,:uiid3),
+(:uiname4,:uiage5,:uiscore6,:uiid7),
+(:uiname8,:uiage9,:uiscore10,:uiid11)
+) as c(name,age,score_value,id)
+where id = c.id`
+	if !equalSQLStrings(expectedQS, qs[0]) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0]),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+}

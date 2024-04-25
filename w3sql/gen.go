@@ -114,32 +114,35 @@ func (cq *SelectQuery) NoConditions() *SelectQuery {
 }
 
 func (q *InsertQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := make([]string, len(q.Pairs))
-	for i, pair := range q.Pairs {
-		values := make([]string, len(pair.Values))
-		for j, v := range pair.Values {
-			values[j] = fmt.Sprint(v)
-		}
-		result[i] = baseSQL.String() +
-			fmt.Sprintf(" (%s)", strings.Join(pair.Fields, ",")) +
-			fmt.Sprintf(" values (%s)", strings.Join(values, ","))
+	result := baseSQL.String() +
+		fmt.Sprintf(" (%s)", strings.Join(q.Fields, ",")) +
+		"\nvalues\n"
+	vals := make([]string, len(q.Values))
+	for i, v := range q.Values {
+		vals[i] = "(" + strings.Join(v, ",") + ")"
 	}
-	return result, q.SQLParams, nil
+	result += strings.Join(vals, ",\n")
+	return []string{result}, q.SQLParams, nil
 }
 
 func (q *UpdateQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := make([]string, 0, len(q.Pairs))
-	for k, pairs := range q.Pairs {
-		updates := make([]string, len(pairs))
-		for j, p := range pairs {
-			updates[j] = fmt.Sprintf("%s=%v", p.Field, p.Val)
+	result := baseSQL.String() + " set\n"
+	flds := make([]string, len(q.Fields))
+	for i, f := range q.Fields {
+		if f == q.IDField {
+			continue
 		}
-		result = append(result, baseSQL.String()+" "+
-			strings.Join(updates, ",")+
-			fmt.Sprintf(" where %s=%s;\n", q.IDField, ":"+k),
-		)
+		flds[i] = fmt.Sprintf("%s = c.%s", f, f)
 	}
-	return result, q.SQLParams, nil
+	result += strings.Join(flds, ",\n")
+	vals := make([]string, len(q.Values))
+	for i, v := range q.Values {
+		vals[i] = "(" + strings.Join(v, ",") + ")"
+	}
+	result += "from (values \n" + strings.Join(vals, ",\n") + "\n) as c"
+	result += "(" + strings.Join(q.Fields, ",") + ")"
+	result += fmt.Sprintf("\n where %s = c.%s", q.IDField, q.IDField)
+	return []string{result}, q.SQLParams, nil
 }
 
 type IsDelAllowedFunc = func(any) error

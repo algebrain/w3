@@ -20,7 +20,7 @@ type RawCondition interface {
 type AtomaryCondition struct {
 	Field string
 	Type  string
-	Val any
+	Val   any
 	Op    string
 }
 
@@ -30,13 +30,13 @@ type CompoundCondition struct {
 }
 
 type SortQuery struct {
-	Field     string
-	Dir string
+	Field string
+	Dir   string
 }
 
 type QueryParam struct {
-	Name  string
-	Val any
+	Name string
+	Val  any
 }
 
 type Record map[string]any
@@ -46,8 +46,14 @@ type Query struct {
 	Offset *int
 	Search RawCondition
 	Sort   []SortQuery
-	Insert []Record
-	Update []Record
+	Insert *struct {
+		Fields []string
+		Values [][]any
+	}
+	Update *struct {
+		Fields []string
+		Values [][]any
+	}
 	Delete []Record
 	Params map[string]any //дополнительные параметры запроса, вне логики SQL
 }
