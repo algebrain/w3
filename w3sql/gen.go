@@ -153,23 +153,35 @@ func (q *DeleteQuery) SQL(baseSQL *SQLString, isDelAllowed ...IsDelAllowedFunc) 
 		}
 	}
 	result := make([]string, 0, 10)
+	isBaseAdded := false
+	prefix := baseSQL.String()
+	if prefix != "" {
+		prefix += "\n"
+	}
 	for table, deletes := range q.Is {
 		for field, val := range deletes {
-			result = append(result, fmt.Sprintf("delete from %s where %s=%s", table, field, val))
+			ns := fmt.Sprintf("delete from %s where %s=%s", table, field, val)
+			if !isBaseAdded {
+				ns = prefix + ns
+				isBaseAdded = true
+			}
+			result = append(result, ns)
 		}
 	}
 
 	for table, deletes := range q.In {
 		for field, val := range deletes {
-			result = append(
-				result,
-				fmt.Sprintf(
-					"delete from %s where %s in (%s)",
-					table,
-					field,
-					strings.Join(val, ","),
-				),
+			ns := fmt.Sprintf(
+				"delete from %s where %s in (%s)",
+				table,
+				field,
+				strings.Join(val, ","),
 			)
+			if !isBaseAdded {
+				ns = prefix + ns
+				isBaseAdded = true
+			}
+			result = append(result, ns)
 		}
 	}
 
