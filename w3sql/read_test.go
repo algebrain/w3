@@ -1,7 +1,9 @@
 package w3sql
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -94,45 +96,39 @@ order by name DESC`
 }
 
 func TestCompileCompoundSelect(t *testing.T) {
-	limit := 10
-	offset := 20
-	q := Query{
-		Limit:  &limit,
-		Offset: &offset,
-		Search: &CompoundCondition{
-			Op: "and",
-			Query: []RawCondition{
-				&AtomaryCondition{
-					Field: "age",
-					Type:  "int",
-					Value: 23,
-					Op:    "<=",
-				},
-				&CompoundCondition{
-					Op: "or",
-					Query: []RawCondition{
-						&AtomaryCondition{
-							Field: "name",
-							Type:  "string",
-							Value: "Bob",
-							Op:    "contains",
+	s := `{
+		"Offset": 20,
+		"Limit": 10,
+		"Sort": [{"Field": "name", "Direction": "desc"}],
+		"Search": {
+			"Op": "and",
+			"Query": [
+				{"Field": "age", "Type": "int", "Value": 23, "Op": "<="},
+				{
+					"Op": "or",
+					"Query": [
+						{
+							"Field": "name",
+							"Type":  "string",
+							"Value": "Bob",
+							"Op":    "contains"
 						},
-						&AtomaryCondition{
-							Field: "name",
-							Type:  "string",
-							Value: "Alice",
-							Op:    "starts with",
-						},
-					},
-				},
-			},
-		},
-		Sort: []SortQuery{
-			SortQuery{
-				Field:     "name",
-				Direction: "desc",
-			},
-		},
+						{
+							"Field": "name",
+							"Type":  "string",
+							"Value": "Alice",
+							"Op":    "starts with"
+						}
+					]
+				}
+			]
+		}
+	}`
+
+	var q Query
+	err := json.Unmarshal([]byte(s), &q)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	cq, err := q.CompileSelect("sqlite", map[string]string{"age": "age::int", "name": ""})
@@ -178,9 +174,9 @@ order by name DESC`
 	if !equalSQLStrings(expectedQS, qs[0]) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0]),
+			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(qs[0]))),
 			"\nexpected",
-			fmt.Sprintf("<%s>", expectedQS),
+			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(expectedQS))),
 		)
 	}
 
