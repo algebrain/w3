@@ -14,7 +14,7 @@ type SqlQuery struct {
 	NoLimit string //запрос что и Text , но без order offset limit
 
 	Sort string
-	Map  map[string]interface{} // пары ключ - значение для db.Exec
+	Map  map[string]any // пары ключ - значение для db.Exec
 }
 
 func (q *Query) Compile(fieldmap map[string]string) (*SqlQuery, error) {
@@ -45,6 +45,69 @@ func (q *Query) Compile(fieldmap map[string]string) (*SqlQuery, error) {
 
 	result.NoLimit = joinNonEmpty([]string{qq.Base, conds}, "\n")
 	result.Sort = qq.Order
+
+	return result, nil
+}
+
+type SqlUpsertQuery struct {
+	InsertQueries []string
+	InsertValues  map[string]any
+	UpdateQueries map[string]string
+	UpdateValues  map[string]any
+}
+
+func (q *Query) CompileUpsert(
+	idFieldName string,
+	fieldmap map[string]bool,
+	fn func(bool, string, any) (any, error),
+) (*SqlUpsertQuery, error) {
+
+	result := &SqlUpsertQuery{
+		UpdateQueries: map[string]string{},
+	}
+
+	fu := func(field string, value any) (any, error) {
+		return fn(false, field, value)
+	}
+
+	fm := map[string]string{}
+	for k, _ := range fieldmap {
+		fm[k] = ""
+	}
+
+	uq, err := (*w3sql.Query)(q).CompileUpdate(sqlSyntax, fm, idFieldName, fu)
+	if err != nil {
+		return nil, err
+	}
+
+	if uq != nil {
+		usql, err := uq.SQL()
+		if err != nil {
+			return nil, err
+		}
+
+		result.UpdateQueries[idFieldName] = usql[0].Code
+		result.UpdateValues = usql[0].Params
+	}
+
+	fi := func(field string, value any) (any, error) {
+		return fn(true, field, value)
+	}
+
+	iq, err := (*w3sql.Query)(q).CompileInsert(sqlSyntax, fm, fi)
+	if err != nil {
+		return nil, err
+	}
+
+	if iq != nil {
+		isql, err := iq.SQL()
+		if err != nil {
+			return nil, err
+		}
+
+		result.InsertQueries = []string{isql[0].Code}
+		result.InsertValues = isql[0].Params
+	}
 
 	return result, nil
 }

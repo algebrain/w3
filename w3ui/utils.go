@@ -1,6 +1,7 @@
 package w3ui
 
 import (
+	"encoding/json"
 	"strings"
 )
 
@@ -13,4 +14,12 @@ func joinNonEmpty(s []string, delim string) string {
 	}
 
 	return strings.Join(ss, delim)
+}
+
+func getJSON(x any) string {
+	b, err := json.MarshalIndent(&x, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
