@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type SQLQuery struct {
+	code   string
+	params map[string]any
+}
+
 func removeRoundBracketsContents(s string) string {
 	str := []rune(s)
 	values := make([]rune, 0, len(str))
@@ -68,11 +73,16 @@ func NeedsWhere(baseSQL string) bool {
 	return where < from || where < join || where == -1
 }
 
-func (cq *SelectQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := baseSQL.String()
+func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
+	result := ""
+	needsWhere := true
 
+	if baseSQL != nil && len(baseSQL) > 0 {
+		result = baseSQL[0].String()
+		needsWhere = baseSQL[0].NeedsWhere()
+	}
 	if cq.Conditions != "" {
-		if baseSQL.NeedsWhere() { // where ... from ... join
+		if needsWhere { // where ... from ... join
 			result += "\nwhere " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
 		} else {
 			result += "\nand " + cq.Conditions + " "
@@ -91,7 +101,7 @@ func (cq *SelectQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error)
 		result += "\norder by " + strings.Join(cq.Order, ", ")
 	}
 
-	return []string{result}, cq.SQLParams, nil
+	return []SQLQuery{{code: result, params: cq.SQLParams}}, nil
 }
 
 func (cq *SelectQuery) NoLimitOffset() *SelectQuery {
@@ -113,20 +123,26 @@ func (cq *SelectQuery) NoConditions() *SelectQuery {
 	return &result
 }
 
-func (q *InsertQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := baseSQL.String() +
-		fmt.Sprintf(" (%s)", strings.Join(q.Fields, ",")) +
+func (q *InsertQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
+	result := ""
+	if baseSQL != nil && len(baseSQL) > 0 {
+		result = baseSQL[0].String()
+	}
+	result += fmt.Sprintf(" (%s)", strings.Join(q.Fields, ",")) +
 		"\nvalues\n"
 	vals := make([]string, len(q.Values))
 	for i, v := range q.Values {
 		vals[i] = "(" + strings.Join(v, ",") + ")"
 	}
 	result += strings.Join(vals, ",\n")
-	return []string{result}, q.SQLParams, nil
+	return []SQLQuery{{code: result, params: q.SQLParams}}, nil
 }
 
-func (q *UpdateQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := baseSQL.String() + " set\n"
+func (q *UpdateQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
+	result := "set\n"
+	if baseSQL != nil && len(baseSQL) > 0 {
+		result = baseSQL[0].String() + " set\n"
+	}
 	flds := make([]string, len(q.Fields))
 	for i, f := range q.Fields {
 		if f == q.IDField {
@@ -142,29 +158,40 @@ func (q *UpdateQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) 
 	result += "from (values \n" + strings.Join(vals, ",\n") + "\n) as c"
 	result += "(" + strings.Join(q.Fields, ",") + ")"
 	result += fmt.Sprintf("\n where %s = c.%s", q.IDField, q.IDField)
-	return []string{result}, q.SQLParams, nil
+	return []SQLQuery{{code: result, params: q.SQLParams}}, nil
 }
 
 type IsDelAllowedFunc = func(any) error
 
-func (q *DeleteQuery) SQL(baseSQL *SQLString) ([]string, map[string]any, error) {
-	result := make([]string, 0, len(q.Tables))
-	prefix := baseSQL.String()
-	isBaseAdded := prefix == ""
-
-	for _, tab := range q.Tables {
-		ns := fmt.Sprintf(
-			"delete from %s where %s in (%s)",
-			tab.TableName,
-			tab.IDName,
-			strings.Join(q.ToDelete, ","),
-		)
-		if !isBaseAdded {
-			ns = prefix + "\n" + ns
-			isBaseAdded = true
+func (q *DeleteQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
+	result := make([]SQLQuery, 0, len(q.Tables))
+	if baseSQL != nil {
+		for i, bs := range baseSQL {
+			if i >= len(result) {
+				break
+			}
+			result[i].code = bs.String() + "\n"
 		}
-		result = append(result, ns)
 	}
 
-	return result, q.SQLParams, nil
+	for i, tab := range q.Tables {
+		if len(tab.ToDelete) == 1 {
+			result[i].code += fmt.Sprintf(
+				"delete from %s where %s = %s",
+				tab.TableName,
+				tab.IDName,
+				tab.ToDelete[0],
+			)
+		} else {
+			result[i].code += fmt.Sprintf(
+				"delete from %s where %s in (%s)",
+				tab.TableName,
+				tab.IDName,
+				strings.Join(tab.ToDelete, ","),
+			)
+		}
+		result[i].params = tab.SQLParams
+	}
+
+	return result, nil
 }

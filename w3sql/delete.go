@@ -4,28 +4,30 @@ import (
 	"fmt"
 )
 
-type TablePair struct {
+type TableDelete struct {
 	TableName string
 	IDName    string
+	ToDelete  []string
+	SQLParams map[string]any
 }
 
 type DeleteQuery struct {
 	CompiledQueryParams
-	ToDelete  []string
-	Tables    []TablePair
-	AllValues map[string]bool
+	Tables []*TableDelete
 }
 
-type DeleteTransform func(id any) (any, error)
+type DeleteTransform func(tableName string, idName string, id any) (any, error)
 
 func (cs *compilerSession) compileDeletePair(
+	tableName string,
+	idName string,
 	id any,
-	allValues map[string]bool,
 	transform ...DeleteTransform,
 ) (string, bool, error) {
 	v := id
+
 	for _, fn := range transform {
-		v, err := fn(v)
+		v, err := fn(tableName, idName, v)
 		if err != nil {
 			return "", false, err
 		}
@@ -37,13 +39,12 @@ func (cs *compilerSession) compileDeletePair(
 	alias := fmt.Sprintf("ui%d", cs.varCounter)
 	cs.varCounter++
 	cs.params[alias] = v
-	allValues[fmt.Sprint(v)] = true
 	return alias, true, nil
 }
 
 func (q *Query) CompileDelete(
 	sqlSyntax string,
-	tables []TablePair,
+	tables []*TableDelete,
 	transform ...DeleteTransform,
 ) (*DeleteQuery, error) {
 	if q.Delete == nil {
@@ -53,27 +54,28 @@ func (q *Query) CompileDelete(
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
 		},
-		ToDelete:  make([]string, len(q.Delete)),
-		Tables:    tables,
-		AllValues: map[string]bool{},
+		Tables: tables,
 	}
 
-	cs := &compilerSession{
-		sqlSyntax: sqlSyntax,
-		params:    map[string]any{},
-	}
-
-	for i, id := range q.Delete {
-		alias, ok, err := cs.compileDeletePair(id, result.AllValues, transform...)
-		if err != nil {
-			return nil, err
+	for _, tab := range tables {
+		cs := &compilerSession{
+			sqlSyntax: sqlSyntax,
+			params:    map[string]any{},
 		}
-		if !ok {
-			continue
+		tab.ToDelete = make([]string, 0, len(q.Delete))
+
+		for _, id := range q.Delete {
+			alias, ok, err := cs.compileDeletePair(tab.TableName, tab.IDName, id, transform...)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				continue
+			}
+			tab.ToDelete = append(tab.ToDelete, ":"+alias)
 		}
-		result.ToDelete[i] = ":" + alias
+		tab.SQLParams = cs.params
 	}
 
-	result.CompiledQueryParams.SQLParams = cs.params
 	return result, nil
 }

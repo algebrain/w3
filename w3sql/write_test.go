@@ -26,7 +26,7 @@ func TestCompileInsert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	transformScore := func(isInsert bool, field string, value any) (any, error) {
+	transformScore := func(field string, value any) (any, error) {
 		if field != "score" {
 			return value, nil
 		}
@@ -43,16 +43,17 @@ func TestCompileInsert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	qs, p, err := iq.SQL(insertBaseSQL)
+	qs, err := iq.SQL(insertBaseSQL)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p := qs[0].params
 
 	if len(p) != len(iq.Fields)*len(iq.Values) {
 		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(iq.Fields)*len(iq.Values))
 	}
 
-	fmt.Println("QUERY:", qs[0])
+	fmt.Println("QUERY:", qs[0].code)
 	fmt.Println("PARAMS:", p)
 
 	expectedQS := `
@@ -61,10 +62,10 @@ values
 (:uiname0,:uiage1,:uiscore2),
 (:uiname3,:uiage4,:uiscore5),
 (:uiname6,:uiage7,:uiscore8)`
-	if !equalSQLStrings(expectedQS, qs[0]) {
+	if !equalSQLStrings(expectedQS, qs[0].code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0]),
+			fmt.Sprintf("<%s>", qs[0].code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -91,7 +92,7 @@ func TestCompileUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	transformScore := func(isInsert bool, field string, value any) (any, error) {
+	transformScore := func(field string, value any) (any, error) {
 		if field != "score" {
 			return value, nil
 		}
@@ -109,16 +110,17 @@ func TestCompileUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	qs, p, err := uq.SQL(updateBaseSQL)
+	qs, err := uq.SQL(updateBaseSQL)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p := qs[0].params
 
 	if len(p) != len(uq.Fields)*len(uq.Values) {
 		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(uq.Fields)*len(uq.Values))
 	}
 
-	fmt.Println("QUERY:", qs[0])
+	fmt.Println("QUERY:", qs[0].code)
 	fmt.Println("PARAMS:", p)
 	expectedQS := `
 update students set
@@ -131,7 +133,7 @@ from (values
 (:uiname8,:uiage9,:uiscore10,:uiid11)
 ) as c(name,age,score_value,id)
 where id = c.id`
-	if !equalSQLStrings(expectedQS, qs[0]) {
+	if !equalSQLStrings(expectedQS, qs[0].code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0]),

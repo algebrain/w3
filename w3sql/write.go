@@ -34,18 +34,17 @@ func IsDefaultValue(v any) bool {
 	return false
 }
 
-type ValueTransform func(isInsert bool, field string, value any) (any, error)
+type ValueTransform func(field string, value any) (any, error)
 
 func (cs *compilerSession) compileWritePair(
 	field string,
 	value any,
-	isInsert bool,
 	transform ...ValueTransform,
 ) (string, bool, error) {
 	v := value
 	var err error
 	for _, fn := range transform {
-		v, err = fn(isInsert, field, v)
+		v, err = fn(field, v)
 		if err != nil {
 			return "", false, err
 		}
@@ -70,7 +69,7 @@ func (q *Query) CompileInsert(
 	}
 	result := &InsertQuery{
 		Fields: make([]string, len(q.Insert.Fields)),
-		Values: make([][]string, len(q.Insert.Values)),
+		Values: make([][]string, 0, len(q.Insert.Values)),
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
 		},
@@ -100,7 +99,7 @@ rows:
 		rVals := make([]string, len(vals))
 		for j, v := range vals {
 			field := q.Insert.Fields[j]
-			alias, ok, err := cs.compileWritePair(field, v, true, transform...)
+			alias, ok, err := cs.compileWritePair(field, v, transform...)
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +108,7 @@ rows:
 			}
 			rVals[j] = ":" + alias
 		}
-		result.Values[i] = rVals
+		result.Values = append(result.Values, rVals)
 	}
 
 	result.CompiledQueryParams.SQLParams = cs.params
@@ -127,7 +126,7 @@ func (q *Query) CompileUpdate(
 	}
 	result := &UpdateQuery{
 		Fields:  make([]string, len(q.Update.Fields)),
-		Values:  make([][]string, len(q.Update.Values)),
+		Values:  make([][]string, 0, len(q.Update.Values)),
 		IDField: idFieldName,
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
@@ -166,7 +165,7 @@ rows:
 		rVals := make([]string, len(vals))
 		for j, v := range vals {
 			field := q.Update.Fields[j]
-			alias, ok, err := cs.compileWritePair(field, v, true, transform...)
+			alias, ok, err := cs.compileWritePair(field, v, transform...)
 			if err != nil {
 				return nil, err
 			}
@@ -175,7 +174,7 @@ rows:
 			}
 			rVals[j] = ":" + alias
 		}
-		result.Values[i] = rVals
+		result.Values = append(result.Values, rVals)
 	}
 
 	result.CompiledQueryParams.SQLParams = cs.params
