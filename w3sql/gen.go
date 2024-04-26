@@ -164,7 +164,7 @@ func (q *UpdateQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 type IsDelAllowedFunc = func(any) error
 
 func (q *DeleteQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
-	result := make([]SQLQuery, 0, len(q.Tables))
+	result := make([]SQLQuery, len(q.Tables))
 	if baseSQL != nil {
 		for i, bs := range baseSQL {
 			if i >= len(result) {

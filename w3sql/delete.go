@@ -25,9 +25,10 @@ func (cs *compilerSession) compileDeletePair(
 	transform ...DeleteTransform,
 ) (string, bool, error) {
 	v := id
+	var err error
 
 	for _, fn := range transform {
-		v, err := fn(tableName, idName, v)
+		v, err = fn(tableName, idName, v)
 		if err != nil {
 			return "", false, err
 		}

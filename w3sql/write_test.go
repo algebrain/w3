@@ -27,6 +27,9 @@ func TestCompileInsert(t *testing.T) {
 	}
 
 	transformScore := func(field string, value any) (any, error) {
+		if field == "name" && value.(string) == "Masha" {
+			return nil, nil
+		}
 		if field != "score" {
 			return value, nil
 		}
@@ -60,8 +63,7 @@ func TestCompileInsert(t *testing.T) {
 insert into students (name,age,score_value)
 values
 (:uiname0,:uiage1,:uiscore2),
-(:uiname3,:uiage4,:uiscore5),
-(:uiname6,:uiage7,:uiscore8)`
+(:uiname3,:uiage4,:uiscore5)`
 	if !equalSQLStrings(expectedQS, qs[0].code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
@@ -93,6 +95,9 @@ func TestCompileUpdate(t *testing.T) {
 	}
 
 	transformScore := func(field string, value any) (any, error) {
+		if field == "name" && value.(string) == "Masha" {
+			return nil, nil
+		}
 		if field != "score" {
 			return value, nil
 		}
@@ -129,8 +134,7 @@ age = c.age,
 score_value = c.score_value,
 from (values
 (:uiname0,:uiage1,:uiscore2,:uiid3),
-(:uiname4,:uiage5,:uiscore6,:uiid7),
-(:uiname8,:uiage9,:uiscore10,:uiid11)
+(:uiname4,:uiage5,:uiscore6,:uiid7)
 ) as c(name,age,score_value,id)
 where id = c.id`
 	if !equalSQLStrings(expectedQS, qs[0].code) {
