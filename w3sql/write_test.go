@@ -50,13 +50,13 @@ func TestCompileInsert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := qs[0].params
+	p := qs[0].Params
 
 	if len(p) != len(iq.Fields)*len(iq.Values) {
 		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(iq.Fields)*len(iq.Values))
 	}
 
-	fmt.Println("QUERY:", qs[0].code)
+	fmt.Println("QUERY:", qs[0].Code)
 	fmt.Println("PARAMS:", p)
 
 	expectedQS := `
@@ -64,10 +64,10 @@ insert into students (name,age,score_value)
 values
 (:uiname0,:uiage1,:uiscore2),
 (:uiname3,:uiage4,:uiscore5)`
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -119,13 +119,13 @@ func TestCompileUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := qs[0].params
+	p := qs[0].Params
 
 	if len(p) != len(uq.Fields)*len(uq.Values) {
 		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(uq.Fields)*len(uq.Values))
 	}
 
-	fmt.Println("QUERY:", qs[0].code)
+	fmt.Println("QUERY:", qs[0].Code)
 	fmt.Println("PARAMS:", p)
 	expectedQS := `
 update students set
@@ -137,7 +137,7 @@ from (values
 (:uiname4,:uiage5,:uiscore6,:uiid7)
 ) as c(name,age,score_value,id)
 where id = c.id`
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0]),

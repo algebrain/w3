@@ -40,8 +40,8 @@ func TestCompileAtomarySelect(t *testing.T) {
 	if len(qs) != 1 {
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
-	fmt.Println("Query:", qs[0].code)
-	fmt.Println("Params:", qs[0].params)
+	fmt.Println("Query:", qs[0].Code)
+	fmt.Println("Params:", qs[0].Params)
 
 	expectedQS := `
 select * from students
@@ -50,10 +50,10 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -68,9 +68,9 @@ order by name DESC`
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
 
-	fmt.Println("Query:", qs[0].code)
-	fmt.Println("Params:", qs[0].params)
-	p := qs[0].params
+	fmt.Println("Query:", qs[0].Code)
+	fmt.Println("Params:", qs[0].Params)
+	p := qs[0].Params
 
 	if len(p) != 1 {
 		t.Fatal("1 parameter expected, got", len((p)))
@@ -87,10 +87,10 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -149,7 +149,7 @@ func TestCompileCompoundSelect(t *testing.T) {
 		t.Fatal("1 sql query expected, got", len(qs))
 	}
 
-	p := qs[0].params
+	p := qs[0].Params
 	if len(p) != 3 {
 		t.Fatal("3 parameters expected, got", len(p))
 	}
@@ -176,10 +176,10 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(qs[0].code))),
+			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(qs[0].Code))),
 			"\nexpected",
 			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(expectedQS))),
 		)
@@ -190,11 +190,11 @@ order by name DESC`
 	if err != nil {
 		t.Fatal(err)
 	}
-	p = qs[0].params
+	p = qs[0].Params
 	if len(qs) != 1 {
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
-	fmt.Println("Query:", qs[0].code)
+	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 
 	expectedQS = `
@@ -204,10 +204,10 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -235,18 +235,18 @@ func TestCompileNo(t *testing.T) {
 	if len(qs) != 1 {
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
-	p := qs[0].params
-	fmt.Println("Query:", qs[0].code)
+	p := qs[0].Params
+	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 
 	expectedQS := `select * from students
 limit 10
 offset 20
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -259,16 +259,16 @@ order by name DESC`
 	if len(qs) != 1 {
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
-	p = qs[0].params
-	fmt.Println("Query:", qs[0].code)
+	p = qs[0].Params
+	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 	expectedQS = `select * from students
 where (age::int<=:sqv0)
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)
@@ -281,17 +281,17 @@ order by name DESC`
 	if len(qs) != 1 {
 		t.Fatal("1 sql query expected, got", len((qs)))
 	}
-	p = qs[0].params
-	fmt.Println("Query:", qs[0].code)
+	p = qs[0].Params
+	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 	expectedQS = `select * from students
 limit 10
 offset 20
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].code) {
+	if !equalSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("<%s>", qs[0].code),
+			fmt.Sprintf("<%s>", qs[0].Code),
 			"\nexpected",
 			fmt.Sprintf("<%s>", expectedQS),
 		)

@@ -7,8 +7,16 @@ import (
 )
 
 type SQLQuery struct {
-	code   string
-	params map[string]any
+	Code   string
+	Params map[string]any
+
+	Base       string
+	Conditions string
+	Limit      string
+	Offset     string
+	Order      string
+	Fields     string
+	Values     string
 }
 
 func removeRoundBracketsContents(s string) string {
@@ -74,34 +82,39 @@ func NeedsWhere(baseSQL string) bool {
 }
 
 func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
-	result := ""
+	result := SQLQuery{Params: cq.SQLParams}
 	needsWhere := true
 
 	if baseSQL != nil && len(baseSQL) > 0 {
-		result = baseSQL[0].String()
+		result.Base = baseSQL[0].String()
+		result.Code += result.Base
 		needsWhere = baseSQL[0].NeedsWhere()
 	}
 	if cq.Conditions != "" {
 		if needsWhere { // where ... from ... join
-			result += "\nwhere " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
+			result.Conditions = "where " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
 		} else {
-			result += "\nand " + cq.Conditions + " "
+			result.Conditions = "and " + cq.Conditions + " "
 		}
+		result.Code += "\n" + result.Conditions
 	}
 
 	if cq.Limit != nil {
-		result += fmt.Sprintf("\nlimit %d ", *cq.Limit)
+		result.Limit = fmt.Sprintf("limit %d ", *cq.Limit)
+		result.Code += "\n" + result.Limit
 	}
 
 	if cq.Offset != nil {
-		result += fmt.Sprintf("\noffset %d ", *cq.Offset)
+		result.Offset = fmt.Sprintf("offset %d ", *cq.Offset)
+		result.Code += "\n" + result.Offset
 	}
 
 	if cq.Order != nil && len(cq.Order) > 0 {
-		result += "\norder by " + strings.Join(cq.Order, ", ")
+		result.Order = "order by " + strings.Join(cq.Order, ", ")
+		result.Code += "\n" + result.Order
 	}
 
-	return []SQLQuery{{code: result, params: cq.SQLParams}}, nil
+	return []SQLQuery{result}, nil
 }
 
 func (cq *SelectQuery) NoLimitOffset() *SelectQuery {
@@ -124,25 +137,29 @@ func (cq *SelectQuery) NoConditions() *SelectQuery {
 }
 
 func (q *InsertQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
-	result := ""
+	result := SQLQuery{Params: q.SQLParams}
 	if baseSQL != nil && len(baseSQL) > 0 {
-		result = baseSQL[0].String()
+		result.Base = baseSQL[0].String()
+		result.Code += result.Base
 	}
-	result += fmt.Sprintf(" (%s)", strings.Join(q.Fields, ",")) +
-		"\nvalues\n"
+	result.Fields = fmt.Sprintf(" (%s)", strings.Join(q.Fields, ","))
+	result.Code += result.Fields
 	vals := make([]string, len(q.Values))
 	for i, v := range q.Values {
 		vals[i] = "(" + strings.Join(v, ",") + ")"
 	}
-	result += strings.Join(vals, ",\n")
-	return []SQLQuery{{code: result, params: q.SQLParams}}, nil
+	result.Values = "values\n" + strings.Join(vals, ",\n")
+	result.Code += "\n" + result.Values
+	return []SQLQuery{result}, nil
 }
 
 func (q *UpdateQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
-	result := "set\n"
+	result := SQLQuery{Params: q.SQLParams}
 	if baseSQL != nil && len(baseSQL) > 0 {
-		result = baseSQL[0].String() + " set\n"
+		result.Base = baseSQL[0].String()
+		result.Code += result.Base
 	}
+
 	flds := make([]string, len(q.Fields))
 	for i, f := range q.Fields {
 		if f == q.IDField {
@@ -150,15 +167,21 @@ func (q *UpdateQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		}
 		flds[i] = fmt.Sprintf("%s = c.%s", f, f)
 	}
-	result += strings.Join(flds, ",\n")
+	result.Fields = " set\n" + strings.Join(flds, ",\n")
+	result.Code += result.Fields
+
 	vals := make([]string, len(q.Values))
 	for i, v := range q.Values {
 		vals[i] = "(" + strings.Join(v, ",") + ")"
 	}
-	result += "from (values \n" + strings.Join(vals, ",\n") + "\n) as c"
-	result += "(" + strings.Join(q.Fields, ",") + ")"
-	result += fmt.Sprintf("\n where %s = c.%s", q.IDField, q.IDField)
-	return []SQLQuery{{code: result, params: q.SQLParams}}, nil
+	result.Values = "from (values \n" + strings.Join(vals, ",\n") + "\n) as c"
+	result.Values += "(" + strings.Join(q.Fields, ",") + ")"
+	result.Code += result.Values
+
+	result.Conditions = fmt.Sprintf("where %s = c.%s", q.IDField, q.IDField)
+	result.Code += "\n" + result.Conditions
+
+	return []SQLQuery{result}, nil
 }
 
 type IsDelAllowedFunc = func(any) error
@@ -170,27 +193,27 @@ func (q *DeleteQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 			if i >= len(result) {
 				break
 			}
-			result[i].code = bs.String() + "\n"
+			result[i].Code = bs.String() + "\n"
 		}
 	}
 
 	for i, tab := range q.Tables {
 		if len(tab.ToDelete) == 1 {
-			result[i].code += fmt.Sprintf(
+			result[i].Code = fmt.Sprintf(
 				"delete from %s where %s = %s",
 				tab.TableName,
 				tab.IDName,
 				tab.ToDelete[0],
 			)
 		} else {
-			result[i].code += fmt.Sprintf(
+			result[i].Code = fmt.Sprintf(
 				"delete from %s where %s in (%s)",
 				tab.TableName,
 				tab.IDName,
 				strings.Join(tab.ToDelete, ","),
 			)
 		}
-		result[i].params = tab.SQLParams
+		result[i].Params = tab.SQLParams
 	}
 
 	return result, nil
