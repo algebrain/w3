@@ -64,7 +64,7 @@ insert into students (name,age,score_value)
 values
 (:uiname0,:uiage1,:uiscore2),
 (:uiname3,:uiage4,:uiscore5)`
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -137,7 +137,7 @@ from (values
 (:uiname4,:uiage5,:uiscore6,:uiid7)
 ) as c(name,age,score_value,id)
 where id = c.id`
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0]),

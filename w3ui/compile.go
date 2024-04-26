@@ -1,8 +1,6 @@
 package w3ui
 
 import (
-	"strings"
-
 	"github.com/algebrain/w3/w3sql"
 )
 
@@ -32,7 +30,11 @@ func (q *Query) Compile(fieldmap map[string]string) (*SqlQuery, error) {
 	}
 	qq := qs[0]
 
-	result.Text = strings.Join([]string{qq.Base, qq.Conditions, qq.Limit, qq.Offset}, "\n")
+	conds := ""
+	if qq.Conditions != "" {
+		conds = "where " + qq.Conditions
+	}
+	result.Text = joinNonEmpty([]string{qq.Base, conds, qq.Order, qq.Limit, qq.Offset}, "\n")
 	if q.Offset != nil {
 		result.offset = int64(*q.Offset)
 	}
@@ -41,7 +43,7 @@ func (q *Query) Compile(fieldmap map[string]string) (*SqlQuery, error) {
 	}
 	result.Map = qs[0].Params
 
-	result.NoLimit = qq.Base + "\n" + qq.Conditions
+	result.NoLimit = joinNonEmpty([]string{qq.Base, conds}, "\n")
 	result.Sort = qq.Order
 
 	return result, nil

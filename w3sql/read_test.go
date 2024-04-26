@@ -50,7 +50,7 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -87,7 +87,7 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -176,12 +176,12 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(qs[0].Code))),
+			fmt.Sprintf("\n<%s>", NormalizeSQLString(strings.TrimSpace(qs[0].Code))),
 			"\nexpected",
-			fmt.Sprintf("\n<%s>", normalizeSQLString(strings.TrimSpace(expectedQS))),
+			fmt.Sprintf("\n<%s>", NormalizeSQLString(strings.TrimSpace(expectedQS))),
 		)
 	}
 
@@ -204,7 +204,7 @@ limit 10
 offset 20
 order by name DESC`
 
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -243,7 +243,7 @@ func TestCompileNo(t *testing.T) {
 limit 10
 offset 20
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -265,7 +265,7 @@ order by name DESC`
 	expectedQS = `select * from students
 where (age::int<=:sqv0)
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),
@@ -288,7 +288,7 @@ order by name DESC`
 limit 10
 offset 20
 order by name DESC`
-	if !equalSQLStrings(expectedQS, qs[0].Code) {
+	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
 			fmt.Sprintf("<%s>", qs[0].Code),

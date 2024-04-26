@@ -7,7 +7,7 @@ import (
 
 func TestNormalizeSQLString(t *testing.T) {
 	s := "abc\n\r\tabc  \t\r\n"
-	if ss := normalizeSQLString(s); ss != "abc abc " {
+	if ss := NormalizeSQLString(s); ss != "abc abc " {
 		t.Fatal("wrong result:", ss)
 	} else {
 		fmt.Printf("in: <%s>\n", s)
@@ -27,10 +27,10 @@ func TestRemoveRoundBracketsContents(t *testing.T) {
 
 func TestEqualSQLStrings(t *testing.T) {
 	s := "\n abc\n\r\tabc  \t\r\n"
-	if !equalSQLStrings(s, "abc abc") {
+	if !EqualSQLStrings(s, "abc abc") {
 		t.Fatal("equality expected")
 	}
-	if equalSQLStrings(s, "abc vabc") {
+	if EqualSQLStrings(s, "abc vabc") {
 		t.Fatal("inequality expected")
 	}
 }

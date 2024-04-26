@@ -65,13 +65,13 @@ func removeRoundBracketsContents(s string) string {
 
 var spaces = regexp.MustCompile(`\s+`)
 
-func normalizeSQLString(s string) string {
+func NormalizeSQLString(s string) string {
 	s = strings.ToLower(s)
 	return spaces.ReplaceAllLiteralString(s, " ")
 }
 
 func NeedsWhere(baseSQL string) bool {
-	s := normalizeSQLString(baseSQL)
+	s := NormalizeSQLString(baseSQL)
 	s = removeRoundBracketsContents(s)
 
 	where := strings.LastIndex(s, " where ")
@@ -91,12 +91,12 @@ func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		needsWhere = baseSQL[0].NeedsWhere()
 	}
 	if cq.Conditions != "" {
+		result.Conditions = cq.Conditions
 		if needsWhere { // where ... from ... join
-			result.Conditions = "where " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
+			result.Code += "\nwhere " + cq.Conditions + " " // оставляем  [where ... from ... join] + [where ...]
 		} else {
-			result.Conditions = "and " + cq.Conditions + " "
+			result.Code += "\nand " + cq.Conditions + " "
 		}
-		result.Code += "\n" + result.Conditions
 	}
 
 	if cq.Limit != nil {
