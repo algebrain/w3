@@ -54,4 +54,35 @@ func TestCompileDelete(t *testing.T) {
 		fmt.Println("QUERY:", qq.code)
 		fmt.Println("PARAMS:", qq.params)
 	}
+
+	if len(qs) != 2 {
+		t.Fatal("2 sql queries expected, got ", len(qs))
+	}
+	expectedQS := "delete from students where studentID in (:ui0,:ui1,:ui2,:ui3)"
+	if !equalSQLStrings(expectedQS, qs[0].code) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[0].code),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+
+	expectedQS = "delete from avatars where imageID in (:ui0,:ui1,:ui2,:ui3,:ui4)"
+	if !equalSQLStrings(expectedQS, qs[1].code) {
+		t.Fatal(
+			"unexpected sql string result, got:",
+			fmt.Sprintf("<%s>", qs[1].code),
+			"\nexpected",
+			fmt.Sprintf("<%s>", expectedQS),
+		)
+	}
+
+	if len(qs[0].params) != 4 {
+		t.Fatal("4 parameters expected, got", qs[0].params)
+	}
+
+	if len(qs[1].params) != 5 {
+		t.Fatal("5 parameters expected, got", qs[1].params)
+	}
 }
