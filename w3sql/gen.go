@@ -65,8 +65,11 @@ func removeRoundBracketsContents(s string) string {
 
 var spaces = regexp.MustCompile(`\s+`)
 
-func NormalizeSQLString(s string) string {
+func NormalizeSQLString(s string, trimmed ...bool) string {
 	s = strings.ToLower(s)
+	if len(trimmed) > 0 && trimmed[0] {
+		s = strings.TrimSpace(s)
+	}
 	return spaces.ReplaceAllLiteralString(s, " ")
 }
 

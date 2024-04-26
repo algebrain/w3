@@ -3,7 +3,6 @@ package w3sql
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"testing"
 )
 
@@ -179,9 +178,9 @@ order by name DESC`
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
-			fmt.Sprintf("\n<%s>", NormalizeSQLString(strings.TrimSpace(qs[0].Code))),
+			fmt.Sprintf("\n<%s>", NormalizeSQLString(qs[0].Code, true)),
 			"\nexpected",
-			fmt.Sprintf("\n<%s>", NormalizeSQLString(strings.TrimSpace(expectedQS))),
+			fmt.Sprintf("\n<%s>", NormalizeSQLString(expectedQS, true)),
 		)
 	}
 
