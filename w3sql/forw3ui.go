@@ -18,7 +18,7 @@ type RawCondition interface {
 }
 
 type AtomaryCondition struct {
-	Field string
+	Col string
 	Type  string
 	Val   any
 	Op    string
@@ -30,7 +30,7 @@ type CompoundCondition struct {
 }
 
 type SortQuery struct {
-	Field string
+	Col string
 	Dir   string
 }
 
@@ -45,11 +45,11 @@ type Query struct {
 	Search RawCondition
 	Sort   []SortQuery
 	Insert *struct {
-		Fields []string
+		Cols []string
 		Values [][]any
 	}
 	Update *struct {
-		Fields []string
+		Cols []string
 		Values [][]any
 	}
 	Delete []any
@@ -172,11 +172,11 @@ func (q *SortQuery) compile(cs *compilerSession) (string, error) {
 		field string
 		ok    bool
 	)
-	if field, ok = cs.fieldmap[q.Field]; !ok {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+	if field, ok = cs.fieldmap[q.Col]; !ok {
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 	if field == "" {
-		field = q.Field
+		field = q.Col
 	}
 
 	return fmt.Sprintf("%v %v", field, q.Dir), nil

@@ -11,20 +11,20 @@ func TestQuery(t *testing.T) {
 	s := `{
 		"Limit": 50,
 		"Sort": [
-			{"Field": "fname", "Dir": "asc"},
-			{"Field": "lname", "Dir": "desc"}
+			{"Col": "fname", "Dir": "asc"},
+			{"Col": "lname", "Dir": "desc"}
 		],
 		"Search": {
 			"Op": "AND",
 			"Query": [
 				{
-					"Field": "fname",
+					"Col": "fname",
 					"Type": "text",
 					"Op": "равен",
 					"Val": "vit"
 				},
 				{
-					"Field": "age",
+					"Col": "age",
 					"Type": "number",
 					"Op": "между",
 					"Val": [10, 20]
@@ -66,20 +66,20 @@ func TestQuery1(t *testing.T) {
 	s := `{
 		"Limit": 50,
 		"Sort": [
-			{"Field": "fname", "Dir": "asc"},
-			{"Field": "lname", "Dir": "desc"}
+			{"Col": "fname", "Dir": "asc"},
+			{"Col": "lname", "Dir": "desc"}
 		],
 		"Search": {
 			"Op": "OR",
 			"Query": [
 				{
-					"Field": "fname",
+					"Col": "fname",
 					"Type": "text",
 					"Op": "равен",
 					"Val": "vit"
 				},
 				{
-					"Field": "age",
+					"Col": "age",
 					"Type": "number",
 					"Op": "между",
 					"Val": [10, 20]
@@ -124,13 +124,13 @@ func TestQuery3(t *testing.T) {
 			"Op": "OR",
 			"Query": [
 				{
-					"Field": "UserName",
+					"Col": "UserName",
 					"Type": "text",
 					"Op": "contains",
 					"Val": "ame"
 				},
 				{
-					"Field": "ChannelName",
+					"Col": "ChannelName",
 					"Type": "text",
 					"Op": "contains",
 					"Val": "ame"
@@ -188,7 +188,7 @@ func TestQuery_list1(t *testing.T) {
 	s := `{
 		"Limit": 50,
 		"Search": {
-			"Field": "UserName",
+			"Col": "UserName",
 			"Type": "list",
 			"Op": "in",
 			"Val": ["ame", "nam"]

@@ -5,7 +5,7 @@ import (
 )
 
 type jsonCondition struct {
-	Field string
+	Col string
 	Type  string
 	Val   any
 	Op    string
@@ -18,11 +18,11 @@ type jsonQuery struct {
 	Search *jsonCondition
 	Sort   []SortQuery
 	Insert *struct {
-		Fields []string
+		Cols []string
 		Values [][]any
 	}
 	Update *struct {
-		Fields []string
+		Cols []string
 		Values [][]any
 	}
 	Delete []any
@@ -41,7 +41,7 @@ func (c *jsonCondition) read() RawCondition {
 		}
 	}
 	return &AtomaryCondition{
-		Field: c.Field,
+		Col: c.Col,
 		Type:  c.Type,
 		Val:   c.Val,
 		Op:    c.Op,

@@ -7,14 +7,14 @@ import (
 
 type InsertQuery struct {
 	CompiledQueryParams
-	Fields []string
+	Cols []string
 	Values [][]string
 }
 
 type UpdateQuery struct {
 	CompiledQueryParams
 	IDField string
-	Fields  []string
+	Cols  []string
 	Values  [][]string
 }
 
@@ -68,7 +68,7 @@ func (q *Query) CompileInsert(
 		return nil, nil
 	}
 	result := &InsertQuery{
-		Fields: make([]string, len(q.Insert.Fields)),
+		Cols: make([]string, len(q.Insert.Cols)),
 		Values: make([][]string, 0, len(q.Insert.Values)),
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
@@ -80,7 +80,7 @@ func (q *Query) CompileInsert(
 		params:    map[string]any{},
 	}
 
-	for i, field := range q.Insert.Fields {
+	for i, field := range q.Insert.Cols {
 		f, ok := fieldmap[field]
 		if !ok {
 			return nil, errors.New("w3sql: no such field: " + field)
@@ -88,17 +88,17 @@ func (q *Query) CompileInsert(
 		if f == "" {
 			f = field
 		}
-		result.Fields[i] = f
+		result.Cols[i] = f
 	}
 
 rows:
 	for i, vals := range q.Insert.Values {
-		if len(vals) != len(result.Fields) {
+		if len(vals) != len(result.Cols) {
 			return nil, errors.New("w3sql: wrong length of list of values in position " + fmt.Sprint(i))
 		}
 		rVals := make([]string, len(vals))
 		for j, v := range vals {
-			field := q.Insert.Fields[j]
+			field := q.Insert.Cols[j]
 			alias, ok, err := cs.compileWritePair(field, v, transform...)
 			if err != nil {
 				return nil, err
@@ -125,7 +125,7 @@ func (q *Query) CompileUpdate(
 		return nil, nil
 	}
 	result := &UpdateQuery{
-		Fields:  make([]string, len(q.Update.Fields)),
+		Cols:  make([]string, len(q.Update.Cols)),
 		Values:  make([][]string, 0, len(q.Update.Values)),
 		IDField: idFieldName,
 		CompiledQueryParams: CompiledQueryParams{
@@ -139,7 +139,7 @@ func (q *Query) CompileUpdate(
 	}
 
 	idFound := false
-	for i, field := range q.Update.Fields {
+	for i, field := range q.Update.Cols {
 		f, ok := fieldmap[field]
 		if !ok {
 			return nil, errors.New("w3sql: no such field: " + field)
@@ -150,7 +150,7 @@ func (q *Query) CompileUpdate(
 		if f == idFieldName {
 			idFound = true
 		}
-		result.Fields[i] = f
+		result.Cols[i] = f
 	}
 
 	if !idFound {
@@ -159,12 +159,12 @@ func (q *Query) CompileUpdate(
 
 rows:
 	for i, vals := range q.Update.Values {
-		if len(vals) != len(result.Fields) {
+		if len(vals) != len(result.Cols) {
 			return nil, errors.New("w3sql: wrong length of list of values in position " + fmt.Sprint(i))
 		}
 		rVals := make([]string, len(vals))
 		for j, v := range vals {
-			field := q.Update.Fields[j]
+			field := q.Update.Cols[j]
 			alias, ok, err := cs.compileWritePair(field, v, transform...)
 			if err != nil {
 				return nil, err

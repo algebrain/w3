@@ -8,7 +8,7 @@ import (
 
 var insertJSON = `{
 	"Insert": {
-		"Fields": ["name", "age", "score"],
+		"Cols": ["name", "age", "score"],
 		"Values": [
 			["Vanya", 21, 90],
 			["Masha", 20, 91],
@@ -52,8 +52,8 @@ func TestCompileInsert(t *testing.T) {
 	}
 	p := qs[0].Params
 
-	if len(p) != len(iq.Fields)*len(iq.Values) {
-		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(iq.Fields)*len(iq.Values))
+	if len(p) != len(iq.Cols)*len(iq.Values) {
+		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(iq.Cols)*len(iq.Values))
 	}
 
 	fmt.Println("QUERY:", qs[0].Code)
@@ -76,7 +76,7 @@ values
 
 var updateJSON = `{
 	"Update": {
-		"Fields": ["name", "age", "score", "id"],
+		"Cols": ["name", "age", "score", "id"],
 		"Values": [
 			["Vanya", 21, 90, 1],
 			["Masha", 20, 91, 2],
@@ -121,8 +121,8 @@ func TestCompileUpdate(t *testing.T) {
 	}
 	p := qs[0].Params
 
-	if len(p) != len(uq.Fields)*len(uq.Values) {
-		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(uq.Fields)*len(uq.Values))
+	if len(p) != len(uq.Cols)*len(uq.Values) {
+		t.Fatal("wrong length of parameters table, got", len(p), "expected", len(uq.Cols)*len(uq.Values))
 	}
 
 	fmt.Println("QUERY:", qs[0].Code)

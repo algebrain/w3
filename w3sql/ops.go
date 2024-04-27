@@ -11,14 +11,14 @@ func (cs *compilerSession) compileOperatorIS(q *AtomaryCondition, not bool) (str
 	cs.varCounter++
 	result := ""
 	var err error
-	if field, ok := cs.getSearchField(q.Field, q.Type); ok {
+	if field, ok := cs.getSearchField(q.Col, q.Type); ok {
 		op := "="
 		if not {
 			op = "<>"
 		}
 		result = fmt.Sprintf("(%v%s:%v)", field, op, vn)
 	} else {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 	cs.params[vn], err = convValue(q.Val, q.Type)
 	return result, err
@@ -28,15 +28,15 @@ func (cs *compilerSession) compileOperatorOR(q *AtomaryCondition) (string, error
 	var err error
 	sq, ok := q.Val.([]any)
 	if !ok {
-		return "", errors.New("w3sql: unexpected value of parameter" + q.Field)
+		return "", errors.New("w3sql: unexpected value of parameter" + q.Col)
 	}
 	parts := make([]string, len(sq))
 	for j, val := range sq {
 		vn := "sqv" + fmt.Sprintf("%d_a%d", cs.varCounter, j)
-		if field, ok := cs.getSearchField(q.Field, q.Type); ok {
+		if field, ok := cs.getSearchField(q.Col, q.Type); ok {
 			parts[j] = fmt.Sprintf("(%v=:%v)", field, vn)
 		} else {
-			return "", errors.New("w3sql: no such field name " + q.Field)
+			return "", errors.New("w3sql: no such field name " + q.Col)
 		}
 		cs.params[vn], err = convValueElem(val, q.Type)
 		if err != nil {
@@ -55,7 +55,7 @@ func (cs *compilerSession) compileOperatorLESS(q *AtomaryCondition, less, orEqua
 	cs.varCounter++
 	result := ""
 	var err error
-	if field, ok := cs.getSearchField(q.Field, q.Type); ok {
+	if field, ok := cs.getSearchField(q.Col, q.Type); ok {
 		op := ">"
 		if less {
 			op = "<"
@@ -69,7 +69,7 @@ func (cs *compilerSession) compileOperatorLESS(q *AtomaryCondition, less, orEqua
 		}
 		result = "(" + result + ")"
 	} else {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 	cs.params[vn], err = convValue(q.Val, q.Type)
 	return result, err
@@ -78,7 +78,7 @@ func (cs *compilerSession) compileOperatorLESS(q *AtomaryCondition, less, orEqua
 func (cs *compilerSession) compileOperatorBETWEEN(q *AtomaryCondition) (string, error) {
 	rng, ok := q.Val.([]any)
 	if !ok {
-		return "", errors.New("w3sql: wrong value for field " + q.Field)
+		return "", errors.New("w3sql: wrong value for field " + q.Col)
 	}
 	v, err := convRange(rng, q.Type)
 	if err != nil {
@@ -90,10 +90,10 @@ func (cs *compilerSession) compileOperatorBETWEEN(q *AtomaryCondition) (string, 
 	cs.varCounter++
 
 	result := ""
-	if field, ok := cs.getSearchField(q.Field, q.Type); ok {
+	if field, ok := cs.getSearchField(q.Col, q.Type); ok {
 		result = fmt.Sprintf("(%v>=:%v AND %v<=:%v)", field, vn1, field, vn2)
 	} else {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 	cs.params[vn1] = v.from
 	cs.params[vn2] = v.to
@@ -107,8 +107,8 @@ func (cs *compilerSession) compileOperatorReverseIN(q *AtomaryCondition) (string
 		field string
 		ok    bool
 	)
-	if field, ok = cs.getSearchField(q.Field, q.Type); !ok {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+	if field, ok = cs.getSearchField(q.Col, q.Type); !ok {
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 	vn := fmt.Sprintf("sqv%d_1", cs.varCounter)
 	cs.varCounter++
@@ -126,12 +126,12 @@ func (cs *compilerSession) compileOperatorIN(q *AtomaryCondition, not bool) (str
 		ok    bool
 		rng   []any
 	)
-	if field, ok = cs.getSearchField(q.Field, q.Type); !ok {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+	if field, ok = cs.getSearchField(q.Col, q.Type); !ok {
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 
 	if rng, ok = q.Val.([]any); !ok {
-		return "", errors.New("w3sql: wrong field value " + q.Field)
+		return "", errors.New("w3sql: wrong field value " + q.Col)
 	}
 	searchStr := "("
 	if not {
@@ -156,7 +156,7 @@ func (cs *compilerSession) compileOperatorBEGINS(q *AtomaryCondition, contains, 
 	cs.varCounter++
 	result := ""
 	var err error
-	if field, ok := cs.getSearchField(q.Field, q.Type); ok {
+	if field, ok := cs.getSearchField(q.Col, q.Type); ok {
 		op := "(%v LIKE :%v || '%%')"
 		if contains {
 			op = "(%v LIKE '%%' || :%v || '%%')"
@@ -165,7 +165,7 @@ func (cs *compilerSession) compileOperatorBEGINS(q *AtomaryCondition, contains, 
 		}
 		result = fmt.Sprintf(op, field, vn)
 	} else {
-		return "", errors.New("w3sql: no such field name " + q.Field)
+		return "", errors.New("w3sql: no such field name " + q.Col)
 	}
 
 	cs.params[vn], err = convValue(q.Val, q.Type)

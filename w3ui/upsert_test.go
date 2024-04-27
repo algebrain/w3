@@ -8,14 +8,14 @@ import (
 func TestCompileUpdate(t *testing.T) {
 	s := `{
 		"Update": {
-			"Fields": ["name", "email", "id"],
+			"Cols": ["name", "email", "id"],
 			"Values": [
 				["test", "test@gmail.com", 1],
 				["test1", "test@gmail.com", 0]
 			]
 		},
 		"Insert": {
-			"Fields": ["name", "email", "created"],
+			"Cols": ["name", "email", "created"],
 			"Values": [
 				["test3", "test3@gmail.com", 0],
 				["test4", "test4@gmail.com", 0]

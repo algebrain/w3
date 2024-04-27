@@ -9,9 +9,9 @@ import (
 var atomaryJSON = `{
 	"Offset": 20,
 	"Limit": 10,
-	"Sort": [{"Field": "name", "Dir": "desc"}],
+	"Sort": [{"Col": "name", "Dir": "desc"}],
 	"Search": {
-		"Field": "age", 
+		"Col": "age", 
 		"Type": "int", 
 		"Val": 23, 
 		"Op": "<="
@@ -99,22 +99,22 @@ order by name DESC`
 var compoundJSON = `{
 	"Offset": 20,
 	"Limit": 10,
-	"Sort": [{"Field": "name", "Dir": "desc"}],
+	"Sort": [{"Col": "name", "Dir": "desc"}],
 	"Search": {
 		"Op": "and",
 		"Query": [
-			{"Field": "age", "Type": "int", "Val": 23, "Op": "<="},
+			{"Col": "age", "Type": "int", "Val": 23, "Op": "<="},
 			{
 				"Op": "or",
 				"Query": [
 					{
-						"Field": "name",
+						"Col": "name",
 						"Type":  "string",
 						"Val": "Bob",
 						"Op":    "contains"
 					},
 					{
-						"Field": "name",
+						"Col": "name",
 						"Type":  "string",
 						"Val": "Alice",
 						"Op":    "starts with"

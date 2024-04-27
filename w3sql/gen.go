@@ -15,7 +15,7 @@ type SQLQuery struct {
 	Limit      string
 	Offset     string
 	Order      string
-	Fields     string
+	Cols     string
 	Values     string
 }
 
@@ -145,8 +145,8 @@ func (q *InsertQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		result.Base = baseSQL[0].String()
 		result.Code += result.Base
 	}
-	result.Fields = fmt.Sprintf(" (%s)", strings.Join(q.Fields, ","))
-	result.Code += result.Fields
+	result.Cols = fmt.Sprintf(" (%s)", strings.Join(q.Cols, ","))
+	result.Code += result.Cols
 	vals := make([]string, len(q.Values))
 	for i, v := range q.Values {
 		vals[i] = "(" + strings.Join(v, ",") + ")"
@@ -163,22 +163,22 @@ func (q *UpdateQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		result.Code += result.Base
 	}
 
-	flds := make([]string, len(q.Fields))
-	for i, f := range q.Fields {
+	flds := make([]string, len(q.Cols))
+	for i, f := range q.Cols {
 		if f == q.IDField {
 			continue
 		}
 		flds[i] = fmt.Sprintf("%s = c.%s", f, f)
 	}
-	result.Fields = " set\n" + strings.Join(flds, ",\n")
-	result.Code += result.Fields
+	result.Cols = " set\n" + strings.Join(flds, ",\n")
+	result.Code += result.Cols
 
 	vals := make([]string, len(q.Values))
 	for i, v := range q.Values {
 		vals[i] = "(" + strings.Join(v, ",") + ")"
 	}
 	result.Values = "from (values \n" + strings.Join(vals, ",\n") + "\n) as c"
-	result.Values += "(" + strings.Join(q.Fields, ",") + ")"
+	result.Values += "(" + strings.Join(q.Cols, ",") + ")"
 	result.Code += result.Values
 
 	result.Conditions = fmt.Sprintf("where %s = c.%s", q.IDField, q.IDField)
