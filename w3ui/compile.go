@@ -1,6 +1,8 @@
 package w3ui
 
 import (
+	"errors"
+
 	"github.com/algebrain/w3/w3sql"
 )
 
@@ -110,4 +112,54 @@ func (q *Query) CompileUpsert(
 	}
 
 	return result, nil
+}
+
+type isDeletionAllowedFunc func(id string) (bool, string)
+
+func (q *Query) CompileDeleteSql(
+	tableIds map[string]string,
+	isDeletionAllowed isDeletionAllowedFunc,
+) ([]*SqlQuery, string) {
+
+	tables := make([]*w3sql.TableDelete, 0, len(tableIds))
+	for t, id := range tableIds {
+		tables = append(tables, &w3sql.TableDelete{
+			TableName: t,
+			IDName:    id,
+		})
+	}
+
+	fd := func(tableName string, idName string, id any) (any, error) {
+		ok, errString := isDeletionAllowed(idName)
+		if !ok {
+			return nil, errors.New(errString)
+		}
+		return id, nil
+	}
+
+	dq, err := (*w3sql.Query)(q).CompileDelete(sqlSyntax, tables, fd)
+
+	if err != nil {
+		return nil, err.Error()
+	}
+
+	if dq == nil {
+		return nil, ""
+	}
+
+	dsql, err := dq.SQL()
+	if err != nil {
+		return nil, err.Error()
+	}
+
+	result := make([]*SqlQuery, len(dsql))
+	for i, s := range dsql {
+		r := &SqlQuery{
+			Text: s.Code,
+			Map:  s.Params,
+		}
+		result[i] = r
+	}
+
+	return result, ""
 }
