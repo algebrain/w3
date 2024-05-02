@@ -15,13 +15,14 @@ type compilerSession struct {
 
 type RawCondition interface {
 	compile(*compilerSession) (string, error)
+	LowerStringValues(map[string]bool)
 }
 
 type AtomaryCondition struct {
-	Col string
-	Type  string
-	Val   any
-	Op    string
+	Col  string
+	Type string
+	Val  any
+	Op   string
 }
 
 type CompoundCondition struct {
@@ -31,7 +32,7 @@ type CompoundCondition struct {
 
 type SortQuery struct {
 	Col string
-	Dir   string
+	Dir string
 }
 
 type QueryParam struct {
@@ -45,11 +46,11 @@ type Query struct {
 	Search RawCondition
 	Sort   []SortQuery
 	Insert *struct {
-		Cols []string
+		Cols   []string
 		Values [][]any
 	}
 	Update *struct {
-		Cols []string
+		Cols   []string
 		Values [][]any
 	}
 	Delete []any
@@ -180,4 +181,46 @@ func (q *SortQuery) compile(cs *compilerSession) (string, error) {
 	}
 
 	return fmt.Sprintf("%v %v", field, q.Dir), nil
+}
+
+func And(a, b RawCondition) RawCondition {
+	return &CompoundCondition{
+		Op:    "AND",
+		Query: []RawCondition{a, b},
+	}
+}
+
+func Or(a, b RawCondition) RawCondition {
+	return &CompoundCondition{
+		Op:    "OR",
+		Query: []RawCondition{a, b},
+	}
+}
+
+func Not(a RawCondition) RawCondition {
+	return &CompoundCondition{
+		Op:    "NOT",
+		Query: []RawCondition{a},
+	}
+}
+
+func (c AtomaryCondition) LowerStringValues(cols map[string]bool) {
+	if _, ok := cols[c.Col]; !ok {
+		return
+	}
+	if v, ok := c.Val.(string); !ok {
+		panic("[w3sql.AtomaryCondition.LowerStringValues]: not a string value: " + fmt.Sprint(c.Val))
+	} else {
+		c.Val = strings.ToLower(v)
+	}
+}
+
+func (c CompoundCondition) LowerStringValues(cols map[string]bool) {
+	for _, x := range c.Query {
+		x.LowerStringValues(cols)
+	}
+}
+
+func (q *Query) LowerSearchValues(cols map[string]bool) {
+	q.Search.LowerStringValues(cols)
 }
