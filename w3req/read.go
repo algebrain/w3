@@ -39,7 +39,8 @@ type SelectConfig[T any] struct {
 type SelectOptions[T any] struct {
 	Logger    Logger
 	Conn      func() Conn
-	Append    *w3sql.Query
+	And       *w3sql.Query
+	Or        *w3sql.Query
 	onSuccess func([]T, int64)
 	onError   func(error)
 }
@@ -96,12 +97,19 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 		q.Limit = &r.cfg.Limit
 	}
 
-	if r.opt.Append != nil {
-		if r.opt.Append.Search != nil {
-			q.Search = w3sql.And(q.Search, r.opt.Append.Search)
+	if r.opt.And != nil {
+		if r.opt.And.Search != nil {
+			q.Search = w3sql.And(q.Search, r.opt.And.Search)
 		}
-		if r.opt.Append.Sort != nil {
-			q.Sort = append(q.Sort, r.opt.Append.Sort...)
+		if r.opt.And.Sort != nil {
+			q.Sort = append(q.Sort, r.opt.And.Sort...)
+		}
+	} else if r.opt.Or != nil {
+		if r.opt.Or.Search != nil {
+			q.Search = w3sql.Or(q.Search, r.opt.Or.Search)
+		}
+		if r.opt.Or.Sort != nil {
+			q.Sort = append(q.Sort, r.opt.Or.Sort...)
 		}
 	}
 
