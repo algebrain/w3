@@ -119,12 +119,6 @@ type allTableW2UI struct {
 	Records any    `json:"records"`
 }
 
-type W2UIError struct {
-	Status  string `json:"status"`
-	ErrCode int    `json:"errcode,omitempty"`
-	Message string `json:"message"`
-}
-
 func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 	w http.ResponseWriter,
 	req any,
@@ -169,7 +163,7 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 			q.Limit = &limit
 		}
 
-		records, total, err := d.sel.Handle((*w3sql.Query)(q))
+		records, total, err := d.sel.Handle(q)
 		if err != nil {
 			errout("System error") // TODO
 			d.logger.LogError("System error", err)

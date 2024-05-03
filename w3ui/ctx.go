@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/MasterDimmy/zipologger"
+	"github.com/algebrain/w3/w3sql"
 	"github.com/valyala/fasthttp"
 )
 
@@ -23,8 +24,14 @@ type TWebAnswer struct {
 	Record  interface{} `json:",omitempty"`
 }
 
-func ReadCtxQuery(req any) (*Query, error) {
-	var rq Query
+type W2UIError struct {
+	Status  string `json:"status"`
+	ErrCode int    `json:"errcode,omitempty"`
+	Message string `json:"message"`
+}
+
+func ReadCtxQuery(req any) (*w3sql.Query, error) {
+	var rq w3sql.Query
 	var decoder *json.Decoder
 
 	switch t := req.(type) {
