@@ -3,8 +3,9 @@ package w3req
 import (
 	"errors"
 	"fmt"
-	"github.com/algebrain/w3/w3sql"
 	"sync"
+
+	"github.com/algebrain/w3/w3sql"
 )
 
 type Logger interface {
@@ -22,7 +23,6 @@ type TotalGetter[T any] interface {
 }
 
 type SelectConfig[T any] struct {
-	Limit      int
 	FieldMap   map[string]string
 	LowerCols  []string
 	AllSQL     *w3sql.SQLString
@@ -33,21 +33,20 @@ type SelectConfig[T any] struct {
 	AutoTotal    bool
 
 	TotalGetter TotalGetter[T]
-	onPanic     func()
+	OnPanic     func()
 }
 
 type SelectOptions[T any] struct {
-	Logger    Logger
-	Conn      func() Conn
-	And       *w3sql.Query
-	Or        *w3sql.Query
-	onSuccess func([]T, int64)
-	onError   func(error)
+	And    *w3sql.Query
+	Or     *w3sql.Query
+	Logger Logger
+	Conn   func() Conn
 }
 
 type SelectRequester[T any] interface {
 	InitOnce(f func() *SelectOptions[T])
-	Handle(w3sql.Query)
+	Handle(q *w3sql.Query) ([]T, int64, error)
+	SetDumpRequests(v bool)
 }
 
 type selectRequester[T any] struct {
@@ -55,12 +54,13 @@ type selectRequester[T any] struct {
 	opt       *SelectOptions[T]
 	lowerCols map[string]bool
 	mut       sync.Mutex
+	initOnce  sync.Once
 	conn      Conn
 }
 
 func NewSelectRequester[T any](cfg *SelectConfig[T]) (SelectRequester[T], error) {
-	if cfg.onPanic == nil {
-		return nil, errors.New("onPanic is mandatory")
+	if cfg.OnPanic == nil {
+		return nil, errors.New("[w3req.SelectRequester.NewSelectRequester] OnPanic is mandatory")
 	}
 	lowerCols := map[string]bool{}
 	for _, c := range cfg.LowerCols {
@@ -74,28 +74,21 @@ func NewSelectRequester[T any](cfg *SelectConfig[T]) (SelectRequester[T], error)
 }
 
 func (r *selectRequester[T]) InitOnce(f func() *SelectOptions[T]) {
-	if r.opt != nil {
-		return
-	}
-	opt := f()
-	if opt.Conn == nil {
-		panic("[w3req.SelectRequester.InitOnce] Conn is mandatory")
-	}
-	if opt.onError == nil {
-		panic("[w3req.SelectRequester.InitOnce] onError is mandatory")
-	}
-	if opt.onSuccess == nil {
-		panic("[w3req.SelectRequester.InitOnce] onSuccess is mandatory")
-	}
-	r.opt = opt
+	defer r.cfg.OnPanic()
+	r.initOnce.Do(func() {
+		if r.opt != nil {
+			return
+		}
+		opt := f()
+		if opt.Conn == nil {
+			panic("[w3req.SelectRequester.NewSelectRequester] Conn is mandatory")
+		}
+		r.opt = opt
+	})
 }
 
-func (r *selectRequester[T]) Handle(q w3sql.Query) {
-	defer r.cfg.onPanic()
-
-	if q.Limit == nil || *q.Limit > r.cfg.Limit || *q.Limit == 0 {
-		q.Limit = &r.cfg.Limit
-	}
+func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
+	defer r.cfg.OnPanic()
 
 	if r.opt.And != nil {
 		if r.opt.And.Search != nil {
@@ -117,8 +110,7 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 
 	sq, err := q.CompileSelect(r.cfg.SQLDialect, r.cfg.FieldMap)
 	if err != nil {
-		r.opt.onError(err)
-		return
+		return nil, 0, err
 	}
 
 	if sq == nil {
@@ -142,8 +134,7 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 	if r.cfg.TotalSQL != nil {
 		t, err := sq.NoLimitOffset().SQL(r.cfg.TotalSQL)
 		if err != nil {
-			r.opt.onError(err)
-			return
+			return nil, 0, err
 		}
 
 		if r.cfg.DumpRequests && r.opt.Logger != nil {
@@ -157,19 +148,17 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 				err.Error(),
 				t[0].Code, t[0].Params,
 			)
-			r.opt.onError(err)
-			return
+			return nil, 0, err
 		}
 
 		if total == 0 {
-			return
+			return []T{}, 0, nil
 		}
 	}
 
 	t, err := sq.SQL(r.cfg.AllSQL)
 	if err != nil {
-		r.opt.onError(err)
-		return
+		return nil, 0, err
 	}
 
 	if r.cfg.DumpRequests && r.opt.Logger != nil {
@@ -184,8 +173,7 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 			err.Error(),
 			t[0].Code, t[0].Params,
 		)
-		r.opt.onError(err)
-		return
+		return nil, 0, err
 	}
 
 	//динамически
@@ -193,8 +181,7 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 		if r.cfg.TotalGetter != nil {
 			total, err = r.cfg.TotalGetter.Total(ret[0])
 			if err != nil {
-				r.opt.onError(err)
-				return
+				return nil, 0, err
 			}
 		} else if r.cfg.AutoTotal {
 			total = int64(len(ret))
@@ -206,5 +193,9 @@ func (r *selectRequester[T]) Handle(q w3sql.Query) {
 		}
 	}
 
-	r.opt.onSuccess(ret, total)
+	return ret, total, nil
+}
+
+func (r *selectRequester[T]) SetDumpRequests(v bool) {
+	r.cfg.DumpRequests = v
 }
