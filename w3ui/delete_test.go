@@ -13,7 +13,7 @@ func TestCompileDelete(t *testing.T) {
 		"Delete": [4]
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestCompileDelete(t *testing.T) {
 		"Delete": [4, 6]
 	}`
 
-	q, err = FromJSON(s)
+	q, err = ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -104,7 +104,7 @@ func (cs *compilerSession) getSearchField(fname string, ftype string) (string, b
 
 func (q *AtomaryCondition) compile(cs *compilerSession) (string, error) {
 	switch q.Op {
-	case "равен", "is":
+	case "равен", "is", "==":
 		return cs.compileOperatorIS(q, false)
 	case "or", "или":
 		return cs.compileOperatorOR(q)
@@ -118,7 +118,7 @@ func (q *AtomaryCondition) compile(cs *compilerSession) (string, error) {
 		return cs.compileOperatorLESS(q, false, false, false)
 	case ">= или 0", ">= or 0":
 		return cs.compileOperatorLESS(q, false, true, true)
-	case "не равен", "not is", "is not":
+	case "не равен", "not is", "is not", "!=":
 		return cs.compileOperatorIS(q, true)
 	case "между", "between":
 		return cs.compileOperatorBETWEEN(q)

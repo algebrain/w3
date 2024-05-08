@@ -2,7 +2,10 @@ package w3ui
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"runtime"
+	"runtime/debug"
 
 	"github.com/MasterDimmy/zipologger"
 	"github.com/algebrain/w3/w3req"
@@ -33,21 +36,41 @@ func (log *Logger) setDebugLogger(z *zipologger.Logger) {
 	log.debugLog = z
 }
 
-func (log *Logger) LogSQL(string, string, map[string]any) {
-	//TODO
+func (log *Logger) LogSQL(prefix string, sql string, params map[string]any) {
+	if log.debugLog != nil {
+		log.debugLog.Printf("%s: %s\nSQL: %s\nParameters:%+v\n", prefix, sql, params)
+	}
 }
 
-func (log *Logger) Logf(string, ...any) {
-	//TODO
+func (log *Logger) Logf(format string, arg string, args ...any) {
+	if log.debugLog != nil {
+		log.debugLog.Printf(format, arg, args...)
+	}
 }
 
-func (log *Logger) LogError(prefix string, err error) {
-	//TODO
+func (log *Logger) LogError(prefix, errPrefix, extError string, err error, errout func(string)) {
+	if runtime.GOOS == "windows" {
+		fmt.Printf("%s: %s\n", prefix, err.Error())
+		debug.PrintStack()
+	}
+
+	if log.errorLog != nil {
+		log.errorLog.Print(prefix + ": " + err.Error())
+	}
+
+	if errout == nil {
+		panic("[w3ui.requester.LogError] error: errout is nil")
+		return
+	}
+
+	if log.outputOriginalError {
+		errout(errPrefix + ": " + err.Error())
+	} else {
+		errout(extError)
+	}
 }
 
-// не требуется select count(*) as total - считается динамически:
-// total = count(ret)+1 от текущего запроса если count(ret) = limit, иначе count(ret)
-func NewDataRequester3[T any](
+func NewDataRequester[T any](
 	allSQL *w3sql.SQLString, //запрос
 	compileMap map[string]string, //карта соответствия фронт аргумент -> sql
 	lowerEm []string, //значения поискового запроса фронта будут to_lower
@@ -72,8 +95,8 @@ func NewDataRequester3[T any](
 }
 
 type RequesterOptions[T any] struct {
-	And                 *w3sql.Query
-	Or                  *w3sql.Query
+	And                 *Query
+	Or                  *Query
 	GetDatabaseProvider func() w3req.Conn
 	ErrorLog            *zipologger.Logger
 	FormatFields        func([]T) //для всех записей ответа обработка полей
@@ -88,8 +111,8 @@ func (d *DataRequester[T]) InitOnce(f func() RequesterOptions[T]) *DataRequester
 		return &w3req.SelectOptions[T]{
 			Logger: logger,
 			Conn:   opt.GetDatabaseProvider,
-			And:    opt.And,
-			Or:     opt.Or,
+			And:    (*w3sql.Query)(opt.And),
+			Or:     (*w3sql.Query)(opt.Or),
 		}
 	})
 	return d
@@ -123,15 +146,8 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 	w http.ResponseWriter,
 	req any,
 	limit int,
-	appendQuery *Query,
 ) {
 	defer zipologger.HandlePanic()
-
-	q, err := ReadCtxQuery(req)
-	if err != nil {
-		d.logger.LogError("Invalid parameters", err)
-		return
-	}
 
 	errout := func(t string) {}
 	successout := func(b []byte) {}
@@ -156,6 +172,18 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 		}
 	}
 
+	q, err := ReadCtxQuery(req)
+	if err != nil {
+		d.logger.LogError(
+			"[requester.ReadCtxQuery] ERROR:",
+			"Invalid parameters",
+			"Invalid parameters",
+			err,
+			errout,
+		)
+		return
+	}
+
 	rr := allTableW2UI{}
 
 	if q.Search != nil {
@@ -163,19 +191,18 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 			q.Limit = &limit
 		}
 
-		records, total, err := d.sel.Handle(q)
+		records, total, err := d.sel.Handle((*w3sql.Query)(q))
 		if err != nil {
-			errout("System error") // TODO
-			d.logger.LogError("System error", err)
+			d.logger.LogError(
+				"[requester.Handle] ERROR:",
+				"System error. Try again later.",
+				"System error",
+				err,
+				errout,
+			)
 			return
-		}
-
-		if err == nil {
-			rr.Status = "success"
 		} else {
-			errout("System error") // TODO
-			d.logger.LogError("RequestDatabase:", err)
-			return
+			rr.Status = "success"
 		}
 
 		rr.Total = total
@@ -188,4 +215,18 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 
 	buf, _ := json.Marshal(&rr)
 	successout(buf)
+}
+
+// fasthttp
+func (d *DataRequester[T]) GetFasthttpRequestHandler(limit int) fasthttp.RequestHandler {
+	return fasthttp.RequestHandler(func(ctx *fasthttp.RequestCtx) {
+		d.GetFasthttpRequestHandlerInner(nil, ctx, limit)
+	})
+}
+
+// net/http
+func (d *DataRequester[T]) GetHttpRequestHandler(limit int) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		d.GetFasthttpRequestHandlerInner(w, r, limit)
+	})
 }

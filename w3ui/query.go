@@ -6,7 +6,7 @@ import (
 	"github.com/algebrain/w3/w3sql"
 )
 
-func FromJSON(s string) (*Query, error) {
+func ReadJSON(s string) (*Query, error) {
 	var q_ w3sql.Query
 	err := json.Unmarshal([]byte(s), &q_)
 	if err != nil {
@@ -15,4 +15,12 @@ func FromJSON(s string) (*Query, error) {
 
 	q := Query(q_)
 	return &q, nil
+}
+
+func MustReadJSON(s string) *Query {
+	q, err := ReadJSON(s)
+	if err != nil {
+		panic(err)
+	}
+	return q
 }

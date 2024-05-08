@@ -33,7 +33,7 @@ func TestQuery(t *testing.T) {
 		}
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestQuery1(t *testing.T) {
 		}
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestQuery3(t *testing.T) {
 		}
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestQuery_list1(t *testing.T) {
 		}
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}

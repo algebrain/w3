@@ -30,7 +30,7 @@ type W2UIError struct {
 	Message string `json:"message"`
 }
 
-func ReadCtxQuery(req any) (*w3sql.Query, error) {
+func ReadCtxQuery(req any) (*Query, error) {
 	var rq w3sql.Query
 	var decoder *json.Decoder
 
@@ -42,7 +42,7 @@ func ReadCtxQuery(req any) (*w3sql.Query, error) {
 	}
 
 	err := decoder.Decode(&rq)
-	return &rq, err
+	return (*Query)(&rq), err
 }
 
 func (codes ErrorCodes) Error(w http.ResponseWriter, msg string) string {

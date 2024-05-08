@@ -23,7 +23,7 @@ func TestCompileUpdate(t *testing.T) {
 		}
 	}`
 
-	q, err := FromJSON(s)
+	q, err := ReadJSON(s)
 	if err != nil {
 		t.Fatal(err)
 	}

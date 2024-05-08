@@ -10,12 +10,12 @@ import (
 
 type Logger interface {
 	LogSQL(string, string, map[string]any)
-	Logf(string, ...any)
+	Logf(string, string, ...any)
 }
 
 type Conn interface {
-	Select(any, string, map[string]any) (any, error)
-	SelectInt(string, map[string]any) (int64, error)
+	Select(any, string, ...any) ([]any, error)
+	SelectInt(string, ...any) (int64, error)
 }
 
 type TotalGetter[T any] interface {
