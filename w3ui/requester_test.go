@@ -3,9 +3,11 @@ package w3ui
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -15,6 +17,16 @@ import (
 
 	_ "modernc.org/sqlite"
 )
+
+type testLogger struct{}
+
+func (t testLogger) Print(s string) {
+	fmt.Println("=====>>", s)
+}
+
+func (t testLogger) Printf(s string, arg any, args ...any) {
+	fmt.Printf("=====>> "+s, append([]any{arg}, args...)...)
+}
 
 var initStudentsTable = `
 create table students (
@@ -41,20 +53,9 @@ type Student struct {
 	Score      int    `db:"score"`
 }
 
-var allSQL = w3sql.NewSQLString(`
-	select * from students
-`)
+var allSQL = w3sql.NewSQLString(`select * from students`)
 
 var cond1 = `{
-	"Search": {
-		"Col":  "secondNameLen",
-		"Val":  7,
-		"Op":   "<=",
-		"Type": "int"
-	}
-}`
-
-var cond2 = `{
 	"Search": {
 		"Op": "OR",
 		"Query": [
@@ -63,14 +64,17 @@ var cond2 = `{
 				"Val":  20,
 				"Op":   ">",
 				"Type": "int"
-			},
-			{
-				"Col":  "grade",
-				"Val":  77,
-				"Op":   "==",
-				"Type": "int"
 			}
 		]
+	}
+}`
+
+var cond2 = `{
+	"Search": {
+		"Col":  "grade",
+		"Val":  66,
+		"Op":   "==",
+		"Type": "int"
 	}
 }`
 
@@ -90,7 +94,18 @@ var errorCodes = map[string]int{
 
 var toLowerCols = []string{"firstName", "secondName"}
 
-var requester1 = NewDataRequester[Student](allSQL, compileMap, toLowerCols, errorCodes)
+var requester1 = NewDataRequester3[Student](
+	allSQL,
+	compileMap,
+	toLowerCols,
+	errorCodes,
+	func() {
+		if r := recover(); r != nil {
+			fmt.Println("=====PANIC:", r)
+			debug.PrintStack()
+		}
+	},
+)
 
 func openStudents(t *testing.T) *gorp.DbMap {
 	db, err := sql.Open("sqlite", ":memory:")
@@ -115,12 +130,11 @@ func TestRequesterSelect(t *testing.T) {
 	db := openStudents(t)
 
 	requester1.InitOnce(func() RequesterOptions[Student] {
+		requester1.DumpRequests().SetDebugLog(testLogger{})
 		return RequesterOptions[Student]{
-			Or:                  MustReadJSON(cond1),
 			GetDatabaseProvider: func() w3req.Conn { return db },
-			ErrorLog:            nil,
-			FormatFields:        func(r []Student) {
-				t.Log(">>>>>>>>>>>>>>>>>HERE")
+			ErrorLog:            testLogger{},
+			FormatFields: func(r []Student) {
 				for i := 0; i < len(r); i++ {
 					r[i].FirstName = strings.ToUpper(r[i].FirstName)
 				}
@@ -139,7 +153,7 @@ func TestRequesterSelect(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(cond2))
 	w := httptest.NewRecorder()
-	handler := requester1.GetHttpRequestHandler(100)
+	handler := requester1.GetHttpRequestHandler(100, MustReadJSON(cond1))
 	handler(w, req)
 
 	var answer struct {

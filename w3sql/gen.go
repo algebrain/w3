@@ -15,7 +15,7 @@ type SQLQuery struct {
 	Limit      string
 	Offset     string
 	Order      string
-	Cols     string
+	Cols       string
 	Values     string
 }
 
@@ -89,7 +89,7 @@ func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 	needsWhere := true
 
 	if baseSQL != nil && len(baseSQL) > 0 {
-		result.Base = baseSQL[0].String()
+		result.Base = strings.TrimSpace(baseSQL[0].String())
 		result.Code += result.Base
 		needsWhere = baseSQL[0].NeedsWhere()
 	}
@@ -116,6 +116,8 @@ func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		result.Order = "order by " + strings.Join(cq.Order, ", ")
 		result.Code += "\n" + result.Order
 	}
+
+	result.Code = strings.TrimSpace(result.Code)
 
 	return []SQLQuery{result}, nil
 }

@@ -7,14 +7,14 @@ import (
 
 type InsertQuery struct {
 	CompiledQueryParams
-	Cols []string
+	Cols   []string
 	Values [][]string
 }
 
 type UpdateQuery struct {
 	CompiledQueryParams
 	IDField string
-	Cols  []string
+	Cols    []string
 	Values  [][]string
 }
 
@@ -68,7 +68,7 @@ func (q *Query) CompileInsert(
 		return nil, nil
 	}
 	result := &InsertQuery{
-		Cols: make([]string, len(q.Insert.Cols)),
+		Cols:   make([]string, len(q.Insert.Cols)),
 		Values: make([][]string, 0, len(q.Insert.Values)),
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
@@ -125,7 +125,7 @@ func (q *Query) CompileUpdate(
 		return nil, nil
 	}
 	result := &UpdateQuery{
-		Cols:  make([]string, len(q.Update.Cols)),
+		Cols:    make([]string, len(q.Update.Cols)),
 		Values:  make([][]string, 0, len(q.Update.Values)),
 		IDField: idFieldName,
 		CompiledQueryParams: CompiledQueryParams{

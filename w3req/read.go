@@ -37,8 +37,6 @@ type SelectConfig[T any] struct {
 }
 
 type SelectOptions[T any] struct {
-	And    *w3sql.Query
-	Or     *w3sql.Query
 	Logger Logger
 	Conn   func() Conn
 }
@@ -89,22 +87,6 @@ func (r *selectRequester[T]) InitOnce(f func() *SelectOptions[T]) {
 
 func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
 	defer r.cfg.OnPanic()
-
-	if r.opt.And != nil {
-		if r.opt.And.Search != nil {
-			q.Search = w3sql.And(q.Search, r.opt.And.Search)
-		}
-		if r.opt.And.Sort != nil {
-			q.Sort = append(q.Sort, r.opt.And.Sort...)
-		}
-	} else if r.opt.Or != nil {
-		if r.opt.Or.Search != nil {
-			q.Search = w3sql.Or(q.Search, r.opt.Or.Search)
-		}
-		if r.opt.Or.Sort != nil {
-			q.Sort = append(q.Sort, r.opt.Or.Sort...)
-		}
-	}
 
 	q.LowerSearchValues(r.lowerCols)
 
@@ -185,11 +167,16 @@ func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
 			}
 		} else if r.cfg.AutoTotal {
 			total = int64(len(ret))
-			limit := *q.Limit
+			limit := 0
+			if q.Limit != nil {
+				limit = *q.Limit
+			}
 			if total >= int64(limit) && limit > 0 {
 				total = total + 1 //101 чтобы работало листание
 			}
-			total = total + int64(*q.Offset) //= 100+97, исправление последней страницы
+			if q.Offset != nil {
+				total += int64(*q.Offset) //= 100+97, исправление последней страницы
+			}
 		}
 	}
 

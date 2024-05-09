@@ -7,15 +7,19 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	"github.com/MasterDimmy/zipologger"
 	"github.com/algebrain/w3/w3req"
 	"github.com/algebrain/w3/w3sql"
 	"github.com/valyala/fasthttp"
 )
 
+type ExtLogger interface {
+	Print(string)
+	Printf(string, any, ...any)
+}
+
 type Logger struct {
-	errorLog            *zipologger.Logger
-	debugLog            *zipologger.Logger
+	errorLog            ExtLogger
+	debugLog            ExtLogger
 	outputOriginalError bool
 }
 
@@ -24,21 +28,20 @@ type DataRequester[T any] struct {
 	formatFields func([]T)
 	logger       *Logger
 	errorCodes   ErrorCodes
+	onPanic      func()
 }
 
-func newLogger(errorLog *zipologger.Logger) *Logger {
-	return &Logger{
-		errorLog: errorLog,
-	}
+func (log *Logger) setErrorLogger(z ExtLogger) {
+	log.errorLog = z
 }
 
-func (log *Logger) setDebugLogger(z *zipologger.Logger) {
+func (log *Logger) setDebugLogger(z ExtLogger) {
 	log.debugLog = z
 }
 
 func (log *Logger) LogSQL(prefix string, sql string, params map[string]any) {
 	if log.debugLog != nil {
-		log.debugLog.Printf("%s: %s\nSQL: %s\nParameters:%+v\n", prefix, sql, params)
+		log.debugLog.Printf("%s\n<<%s>>\nParameters:\n%+v\n", prefix, sql, getJSON(params))
 	}
 }
 
@@ -70,17 +73,23 @@ func (log *Logger) LogError(prefix, errPrefix, extError string, err error, errou
 	}
 }
 
-func NewDataRequester[T any](
+func NewDataRequester3[T any](
 	allSQL *w3sql.SQLString, //запрос
 	compileMap map[string]string, //карта соответствия фронт аргумент -> sql
 	lowerEm []string, //значения поискового запроса фронта будут to_lower
 	errorCodes map[string]int, //коды ошибок
+	onPanic func(),
 ) *DataRequester[T] {
+	if onPanic == nil {
+		panic("[w3ui.NewDataRequester] ERROR: onPanic should not be nil")
+	}
+
 	opt := w3req.SelectConfig[T]{
 		AllSQL:    allSQL,
 		FieldMap:  compileMap,
 		LowerCols: lowerEm,
-		OnPanic:   zipologger.HandlePanic,
+		OnPanic:   onPanic,
+		AutoTotal: true,
 	}
 
 	req, err := w3req.NewSelectRequester[T](&opt)
@@ -91,46 +100,46 @@ func NewDataRequester[T any](
 	return &DataRequester[T]{
 		sel:        req,
 		errorCodes: ErrorCodes(errorCodes),
+		onPanic:    onPanic,
+		logger:     &Logger{},
 	}
 }
 
 type RequesterOptions[T any] struct {
-	And                 *Query
-	Or                  *Query
 	GetDatabaseProvider func() w3req.Conn
-	ErrorLog            *zipologger.Logger
+	ErrorLog            ExtLogger
 	FormatFields        func([]T) //для всех записей ответа обработка полей
 }
 
 func (d *DataRequester[T]) InitOnce(f func() RequesterOptions[T]) *DataRequester[T] {
 	d.sel.InitOnce(func() *w3req.SelectOptions[T] {
 		opt := f()
-		logger := newLogger(opt.ErrorLog)
 		d.formatFields = opt.FormatFields
-		d.logger = logger
+		d.logger.setErrorLogger(opt.ErrorLog)
 		return &w3req.SelectOptions[T]{
-			Logger: logger,
+			Logger: d.logger,
 			Conn:   opt.GetDatabaseProvider,
-			And:    (*w3sql.Query)(opt.And),
-			Or:     (*w3sql.Query)(opt.Or),
 		}
 	})
 	return d
 }
 
 // если включен, то пишет дамп запроса и SQL с параметрами
+// вызывать внутри InitOnce
 func (d *DataRequester[T]) DumpRequests() *DataRequester[T] {
 	d.sel.SetDumpRequests(true)
 	return d
 }
 
 // если указан, то будет журналировать все запросы
-func (d *DataRequester[T]) SetDebugLog(log *zipologger.Logger) *DataRequester[T] {
+// вызывать внутри InitOnce
+func (d *DataRequester[T]) SetDebugLog(log ExtLogger) *DataRequester[T] {
 	d.logger.setDebugLogger(log)
 	return d
 }
 
 // если включен, то вместо "Invalid Parameters" будет возвращать настоящую ошибку
+// вызывать внутри InitOnce
 func (d *DataRequester[T]) OutputOriginalErrorText() *DataRequester[T] {
 	d.logger.outputOriginalError = true
 	return d
@@ -146,8 +155,9 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 	w http.ResponseWriter,
 	req any,
 	limit int,
+	appendQuery *Query,
 ) {
-	defer zipologger.HandlePanic()
+	defer d.onPanic()
 
 	errout := func(t string) {}
 	successout := func(b []byte) {}
@@ -184,6 +194,22 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 		return
 	}
 
+	if appendQuery.Sort != nil {
+		q.Sort = append(q.Sort, appendQuery.Sort...)
+	}
+
+	if appendQuery.Search != nil {
+		switch v := appendQuery.Search.(type) {
+		case *w3sql.AtomaryCondition:
+			q.Search = w3sql.And(q.Search, v)
+		case *w3sql.CompoundCondition:
+			q.Search = &w3sql.CompoundCondition{
+				Op:    v.Op,
+				Query: append(v.Query, q.Search),
+			}
+		}
+	}
+
 	rr := allTableW2UI{}
 
 	if q.Search != nil {
@@ -218,15 +244,15 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 }
 
 // fasthttp
-func (d *DataRequester[T]) GetFasthttpRequestHandler(limit int) fasthttp.RequestHandler {
+func (d *DataRequester[T]) GetFasthttpRequestHandler(limit int, appendQuery *Query) fasthttp.RequestHandler {
 	return fasthttp.RequestHandler(func(ctx *fasthttp.RequestCtx) {
-		d.GetFasthttpRequestHandlerInner(nil, ctx, limit)
+		d.GetFasthttpRequestHandlerInner(nil, ctx, limit, appendQuery)
 	})
 }
 
 // net/http
-func (d *DataRequester[T]) GetHttpRequestHandler(limit int) http.HandlerFunc {
+func (d *DataRequester[T]) GetHttpRequestHandler(limit int, appendQuery *Query) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		d.GetFasthttpRequestHandlerInner(w, r, limit)
+		d.GetFasthttpRequestHandlerInner(w, r, limit, appendQuery)
 	})
 }
