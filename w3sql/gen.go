@@ -102,6 +102,11 @@ func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 		}
 	}
 
+	if cq.Order != nil && len(cq.Order) > 0 {
+		result.Order = "order by " + strings.Join(cq.Order, ", ")
+		result.Code += "\n" + result.Order
+	}
+
 	if cq.Limit != nil {
 		result.Limit = fmt.Sprintf("limit %d ", *cq.Limit)
 		result.Code += "\n" + result.Limit
@@ -110,11 +115,6 @@ func (cq *SelectQuery) SQL(baseSQL ...*SQLString) ([]SQLQuery, error) {
 	if cq.Offset != nil {
 		result.Offset = fmt.Sprintf("offset %d ", *cq.Offset)
 		result.Code += "\n" + result.Offset
-	}
-
-	if cq.Order != nil && len(cq.Order) > 0 {
-		result.Order = "order by " + strings.Join(cq.Order, ", ")
-		result.Code += "\n" + result.Order
 	}
 
 	result.Code = strings.TrimSpace(result.Code)

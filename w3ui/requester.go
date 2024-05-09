@@ -12,6 +12,11 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+const (
+	SYSTEM_ERROR       = "System error"
+	INVALID_PARAMETERS = "Invalid parameters"
+)
+
 type ExtLogger interface {
 	Print(string)
 	Printf(string, any, ...any)
@@ -51,14 +56,14 @@ func (log *Logger) Logf(format string, arg string, args ...any) {
 	}
 }
 
-func (log *Logger) LogError(prefix, errPrefix, extError string, err error, errout func(string)) {
+func (log *Logger) LogError(extError string, err error, errout func(string)) {
 	if runtime.GOOS == "windows" {
-		fmt.Printf("%s: %s\n", prefix, err.Error())
+		fmt.Printf("%s: %s\n", extError, err.Error())
 		debug.PrintStack()
 	}
 
 	if log.errorLog != nil {
-		log.errorLog.Print(prefix + ": " + err.Error())
+		log.errorLog.Print(extError + ": " + err.Error())
 	}
 
 	if errout == nil {
@@ -67,7 +72,7 @@ func (log *Logger) LogError(prefix, errPrefix, extError string, err error, errou
 	}
 
 	if log.outputOriginalError {
-		errout(errPrefix + ": " + err.Error())
+		errout(extError + ": " + err.Error())
 	} else {
 		errout(extError)
 	}
@@ -184,13 +189,7 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 
 	q, err := ReadCtxQuery(req)
 	if err != nil {
-		d.logger.LogError(
-			"[requester.ReadCtxQuery] ERROR:",
-			"Invalid parameters",
-			"Invalid parameters",
-			err,
-			errout,
-		)
+		d.logger.LogError(INVALID_PARAMETERS, err, errout)
 		return
 	}
 
@@ -219,13 +218,7 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 
 		records, total, err := d.sel.Handle((*w3sql.Query)(q))
 		if err != nil {
-			d.logger.LogError(
-				"[requester.Handle] ERROR:",
-				"System error. Try again later.",
-				"System error",
-				err,
-				errout,
-			)
+			d.logger.LogError(SYSTEM_ERROR, err, errout)
 			return
 		} else {
 			rr.Status = "success"

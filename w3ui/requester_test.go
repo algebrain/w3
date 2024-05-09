@@ -66,7 +66,11 @@ var cond1 = `{
 				"Type": "int"
 			}
 		]
-	}
+	},
+	"Sort": [{
+		"Col": "grade",
+		"Dir": "asc"
+	}]
 }`
 
 var cond2 = `{
@@ -88,8 +92,8 @@ var compileMap = map[string]string{
 }
 
 var errorCodes = map[string]int{
-	"System error. Try again later.": 1,
-	"Invalid parameters":             2,
+	SYSTEM_ERROR:       1,
+	INVALID_PARAMETERS: 2,
 }
 
 var toLowerCols = []string{"firstName", "secondName"}
