@@ -67,10 +67,16 @@ var cond1 = `{
 			}
 		]
 	},
-	"Sort": [{
-		"Col": "grade",
-		"Dir": "asc"
-	}]
+	"Sort": [
+		{
+			"Col": "grade",
+			"Dir": "asc"
+		},
+		{
+			"Col": "age",
+			"Dir": "desc"
+		}
+	]
 }`
 
 var cond2 = `{
