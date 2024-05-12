@@ -111,7 +111,7 @@ func NewDataRequester3[T any](
 }
 
 type RequesterOptions[T any] struct {
-	GetDatabaseProvider func() w3req.Conn
+	GetDB func() w3req.DB
 	ErrorLog            ExtLogger
 	FormatFields        func([]T) //для всех записей ответа обработка полей
 }
@@ -123,7 +123,7 @@ func (d *DataRequester[T]) InitOnce(f func() RequesterOptions[T]) *DataRequester
 		d.logger.setErrorLogger(opt.ErrorLog)
 		return &w3req.SelectOptions[T]{
 			Logger: d.logger,
-			Conn:   opt.GetDatabaseProvider,
+			DB:   opt.GetDB,
 		}
 	})
 	return d

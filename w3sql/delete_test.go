@@ -28,12 +28,12 @@ func TestCompileDelete(t *testing.T) {
 		return id, nil
 	}
 
-	dq, err := q.CompileDelete("sqlite", []*TableDelete{
-		&TableDelete{
+	dq, err := q.CompileDelete("sqlite", []*DeletePair{
+		&DeletePair{
 			TableName: "students",
 			IDName:    "studentID",
 		},
-		&TableDelete{
+		&DeletePair{
 			TableName: "avatars",
 			IDName:    "imageID",
 		},

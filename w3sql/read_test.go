@@ -42,12 +42,11 @@ func TestCompileAtomarySelect(t *testing.T) {
 	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", qs[0].Params)
 
-	expectedQS := `
-select * from students
+	expectedQS := `select * from students
 where (age::int<=:sqv0)
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
@@ -79,12 +78,11 @@ order by name DESC`
 		t.Fatal("expected 23 for age, got", fmt.Sprintf("<%v> <%T> <%v>", x, p["sqv0"], ok))
 	}
 
-	expectedQS = `
-select * from students where score > 50
+	expectedQS = `select * from students where score > 50
 and (age::int<=:sqv0)
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
@@ -168,12 +166,11 @@ func TestCompileCompoundSelect(t *testing.T) {
 	fmt.Println("Query:", qs[0])
 	fmt.Println("Params:", p)
 
-	expectedQS := `
-select * from students
+	expectedQS := `select * from students
 where ((age::int<=:sqv0) AND ((name LIKE '%' || :sqv1 || '%') OR (name LIKE :sqv2 || '%')))
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
@@ -196,12 +193,11 @@ order by name DESC`
 	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 
-	expectedQS = `
-select * from students where score > 50
+	expectedQS = `select * from students where score > 50
 and ((age::int<=:sqv0) AND ((name LIKE '%' || :sqv1 || '%') OR (name LIKE :sqv2 || '%')))
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
@@ -239,9 +235,9 @@ func TestCompileNo(t *testing.T) {
 	fmt.Println("Params:", p)
 
 	expectedQS := `select * from students
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",
@@ -284,9 +280,9 @@ order by name DESC`
 	fmt.Println("Query:", qs[0].Code)
 	fmt.Println("Params:", p)
 	expectedQS = `select * from students
+order by name DESC
 limit 10
-offset 20
-order by name DESC`
+offset 20`
 	if !EqualSQLStrings(expectedQS, qs[0].Code) {
 		t.Fatal(
 			"unexpected sql string result, got:",

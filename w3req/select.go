@@ -1,6 +1,7 @@
 package w3req
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -13,9 +14,10 @@ type Logger interface {
 	Logf(string, string, ...any)
 }
 
-type Conn interface {
+type DB interface {
 	Select(any, string, ...any) ([]any, error)
 	SelectInt(string, ...any) (int64, error)
+	Exec(string, ...any) (sql.Result, error)
 }
 
 type TotalGetter[T any] interface {
@@ -38,7 +40,7 @@ type SelectConfig[T any] struct {
 
 type SelectOptions[T any] struct {
 	Logger Logger
-	Conn   func() Conn
+	DB     func() DB
 }
 
 type SelectRequester[T any] interface {
@@ -53,7 +55,7 @@ type selectRequester[T any] struct {
 	lowerCols map[string]bool
 	mut       sync.Mutex
 	initOnce  sync.Once
-	conn      Conn
+	conn      DB
 }
 
 func NewSelectRequester[T any](cfg *SelectConfig[T]) (SelectRequester[T], error) {
@@ -78,8 +80,8 @@ func (r *selectRequester[T]) InitOnce(f func() *SelectOptions[T]) {
 			return
 		}
 		opt := f()
-		if opt.Conn == nil {
-			panic("[w3req.SelectRequester.NewSelectRequester] Conn is mandatory")
+		if opt.DB == nil {
+			panic("[w3req.SelectRequester.NewSelectRequester] DB is mandatory")
 		}
 		r.opt = opt
 	})
@@ -103,12 +105,12 @@ func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
 		r.mut.Lock()
 		defer r.mut.Unlock()
 		if r.conn == nil {
-			r.conn = r.opt.Conn()
+			r.conn = r.opt.DB()
 		}
 	}()
 
 	if r.conn == nil {
-		panic("[w3req.SelectRequester.Handle]: Conn is nil")
+		panic("[w3req.SelectRequester.Handle]: DB is nil")
 	}
 
 	var total int64
@@ -126,7 +128,7 @@ func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
 		total, err = r.conn.SelectInt(t[0].Code, t[0].Params)
 		if err != nil {
 			err = fmt.Errorf(
-				"SelectOne error: %s\nSQL: %s\nData:%+v\n",
+				"SelectOne error: %s\nSQL: %s\nParams:%+v\n",
 				err.Error(),
 				t[0].Code, t[0].Params,
 			)
@@ -144,14 +146,14 @@ func (r *selectRequester[T]) Handle(q *w3sql.Query) ([]T, int64, error) {
 	}
 
 	if r.cfg.DumpRequests && r.opt.Logger != nil {
-		r.opt.Logger.LogSQL("Data SQL:", t[0].Code, t[0].Params)
+		r.opt.Logger.LogSQL("Select SQL:", t[0].Code, t[0].Params)
 	}
 
 	var ret []T
 	_, err = r.conn.Select(&ret, t[0].Code, t[0].Params)
 	if err != nil {
 		err = fmt.Errorf(
-			"Select error: %s\nSQL: %s\nData:%+v\n",
+			"Select error: %s\nSQL: %s\nParams:%+v\n",
 			err.Error(),
 			t[0].Code, t[0].Params,
 		)

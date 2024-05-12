@@ -44,6 +44,9 @@ func (cs *compilerSession) compileWritePair(
 	v := value
 	var err error
 	for _, fn := range transform {
+		if fn == nil {
+			continue
+		}
 		v, err = fn(field, v)
 		if err != nil {
 			return "", false, err

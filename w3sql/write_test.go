@@ -59,8 +59,7 @@ func TestCompileInsert(t *testing.T) {
 	fmt.Println("QUERY:", qs[0].Code)
 	fmt.Println("PARAMS:", p)
 
-	expectedQS := `
-insert into students (name,age,score_value)
+	expectedQS := `insert into students (name,age,score_value)
 values
 (:uiname0,:uiage1,:uiscore2),
 (:uiname3,:uiage4,:uiscore5)`
@@ -127,8 +126,7 @@ func TestCompileUpdate(t *testing.T) {
 
 	fmt.Println("QUERY:", qs[0].Code)
 	fmt.Println("PARAMS:", p)
-	expectedQS := `
-update students set
+	expectedQS := `update students set
 name = c.name,
 age = c.age,
 score_value = c.score_value,

@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+type DeletePair struct {
+	TableName string
+	IDName    string
+}
+
 type TableDelete struct {
 	TableName string
 	IDName    string
@@ -45,7 +50,7 @@ func (cs *compilerSession) compileDeletePair(
 
 func (q *Query) CompileDelete(
 	sqlSyntax string,
-	tables []*TableDelete,
+	tables []*DeletePair,
 	transform ...DeleteTransform,
 ) (*DeleteQuery, error) {
 	if q.Delete == nil {
@@ -55,15 +60,20 @@ func (q *Query) CompileDelete(
 		CompiledQueryParams: CompiledQueryParams{
 			Params: q.Params,
 		},
-		Tables: tables,
+		Tables: make([]*TableDelete, len(tables)),
 	}
 
-	for _, tab := range tables {
+	for i, tab := range tables {
+		result.Tables[i] = &TableDelete{
+			IDName:    tab.IDName,
+			TableName: tab.TableName,
+		}
+
 		cs := &compilerSession{
 			sqlSyntax: sqlSyntax,
 			params:    map[string]any{},
 		}
-		tab.ToDelete = make([]string, 0, len(q.Delete))
+		result.Tables[i].ToDelete = make([]string, 0, len(q.Delete))
 
 		for _, id := range q.Delete {
 			alias, ok, err := cs.compileDeletePair(tab.TableName, tab.IDName, id, transform...)
@@ -73,9 +83,9 @@ func (q *Query) CompileDelete(
 			if !ok {
 				continue
 			}
-			tab.ToDelete = append(tab.ToDelete, ":"+alias)
+			result.Tables[i].ToDelete = append(result.Tables[i].ToDelete, ":"+alias)
 		}
-		tab.SQLParams = cs.params
+		result.Tables[i].SQLParams = cs.params
 	}
 
 	return result, nil

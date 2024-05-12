@@ -121,9 +121,9 @@ func (q *Query) CompileDeleteSql(
 	isDeletionAllowed isDeletionAllowedFunc,
 ) ([]*SqlQuery, string) {
 
-	tables := make([]*w3sql.TableDelete, 0, len(tableIds))
+	tables := make([]*w3sql.DeletePair, 0, len(tableIds))
 	for t, id := range tableIds {
-		tables = append(tables, &w3sql.TableDelete{
+		tables = append(tables, &w3sql.DeletePair{
 			TableName: t,
 			IDName:    id,
 		})
