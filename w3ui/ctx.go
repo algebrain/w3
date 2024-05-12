@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/MasterDimmy/zipologger"
 	"github.com/algebrain/w3/w3sql"
 	"github.com/valyala/fasthttp"
 )
@@ -117,6 +116,12 @@ func (codes ErrorCodes) ctxRetErrorCommon(ctx *fasthttp.RequestCtx, text string)
 	return string(buf) //+ string(ctx.PostBody())
 }
 
+var getLog func(requestPath string, logPurpose string) ExtLogger = nil
+
+func SetLogGetter(f func(requestPath string, logPurpose string) ExtLogger) {
+	getLog = f
+}
+
 func (codes ErrorCodes) CtxRetError(ctx *fasthttp.RequestCtx, text string) string {
 	if runtime.GOOS == "windows" {
 		_, f, l, _ := runtime.Caller(1)
@@ -161,11 +166,10 @@ func (codes ErrorCodes) CtxRetError(ctx *fasthttp.RequestCtx, text string) strin
 			codes.ctxRetErrorCommon(ctx, text),
 		)
 	}
-	logged := zipologger.GetLoggerBySuffix(
-		urlReplacer.Replace(requrl),
-		"./logs/answers_error_",
-		3, 3, 3, false,
-	).Print(ret)
+	logged := ret
+	if getLog != nil {
+		logged = getLog(requrl, "answer_error").Print(ret)
+	}
 	return ipv4 + ":[" + string(ctx.Request.RequestURI()) +
 		"] " + text + "\n" + logged
 }

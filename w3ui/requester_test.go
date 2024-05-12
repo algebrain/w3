@@ -142,8 +142,8 @@ func TestRequesterSelect(t *testing.T) {
 	requester1.InitOnce(func() RequesterOptions[Student] {
 		requester1.DumpRequests().SetDebugLog(testLogger{})
 		return RequesterOptions[Student]{
-			GetDB: func() w3req.DB { return db },
-			ErrorLog:            testLogger{},
+			GetDB:    func() w3req.DB { return db },
+			ErrorLog: testLogger{},
 			FormatFields: func(r []Student) {
 				for i := 0; i < len(r); i++ {
 					r[i].FirstName = strings.ToUpper(r[i].FirstName)

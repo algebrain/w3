@@ -18,8 +18,8 @@ const (
 )
 
 type ExtLogger interface {
-	Print(string)
-	Printf(string, any, ...any)
+	Print(string) string
+	Printf(string, any, ...any) string
 }
 
 type Logger struct {
@@ -111,9 +111,9 @@ func NewDataRequester3[T any](
 }
 
 type RequesterOptions[T any] struct {
-	GetDB func() w3req.DB
-	ErrorLog            ExtLogger
-	FormatFields        func([]T) //для всех записей ответа обработка полей
+	GetDB        func() w3req.DB
+	ErrorLog     ExtLogger
+	FormatFields func([]T) //для всех записей ответа обработка полей
 }
 
 func (d *DataRequester[T]) InitOnce(f func() RequesterOptions[T]) *DataRequester[T] {
@@ -123,7 +123,7 @@ func (d *DataRequester[T]) InitOnce(f func() RequesterOptions[T]) *DataRequester
 		d.logger.setErrorLogger(opt.ErrorLog)
 		return &w3req.SelectOptions[T]{
 			Logger: d.logger,
-			DB:   opt.GetDB,
+			DB:     opt.GetDB,
 		}
 	})
 	return d
