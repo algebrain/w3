@@ -20,7 +20,7 @@ type SqlQuery struct {
 }
 
 func (q *Query) Compile(fieldmap map[string]string) (*SqlQuery, error) {
-	sq, err := (*w3sql.Query)(q).CompileSelect(sqlSyntax, fieldmap)
+	sq, err := (*w3sql.Query)(q).CompileSelect(string(globalConfig.SQLSyntax), fieldmap)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (q *Query) CompileUpsert(
 		fm[k] = ""
 	}
 
-	uq, err := (*w3sql.Query)(q).CompileUpdate(sqlSyntax, fm, idFieldName, fu)
+	uq, err := (*w3sql.Query)(q).CompileUpdate(string(globalConfig.SQLSyntax), fm, idFieldName, fu)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (q *Query) CompileUpsert(
 		return fn(true, field, value)
 	}
 
-	iq, err := (*w3sql.Query)(q).CompileInsert(sqlSyntax, fm, fi)
+	iq, err := (*w3sql.Query)(q).CompileInsert(string(globalConfig.SQLSyntax), fm, fi)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (q *Query) CompileDeleteSql(
 		return id, nil
 	}
 
-	dq, err := (*w3sql.Query)(q).CompileDelete(sqlSyntax, tables, fd)
+	dq, err := (*w3sql.Query)(q).CompileDelete(string(globalConfig.SQLSyntax), tables, fd)
 
 	if err != nil {
 		return nil, err.Error()

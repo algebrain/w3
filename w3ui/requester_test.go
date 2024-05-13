@@ -20,12 +20,14 @@ import (
 
 type testLogger struct{}
 
-func (t testLogger) Print(s string) {
+func (t testLogger) Print(s string) string {
 	fmt.Println("=====>>", s)
+	return s
 }
 
-func (t testLogger) Printf(s string, arg any, args ...any) {
+func (t testLogger) Printf(s string, arg any, args ...any) string {
 	fmt.Printf("=====>> "+s, append([]any{arg}, args...)...)
+	return s
 }
 
 var initStudentsTable = `

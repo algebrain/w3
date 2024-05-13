@@ -116,10 +116,8 @@ func (codes ErrorCodes) ctxRetErrorCommon(ctx *fasthttp.RequestCtx, text string)
 	return string(buf) //+ string(ctx.PostBody())
 }
 
-var getLog func(requestPath string, logPurpose string) ExtLogger = nil
-
-func SetLogGetter(f func(requestPath string, logPurpose string) ExtLogger) {
-	getLog = f
+func SetLogGetter(f func(requestPath string, logPurpose LogPurpose) ExtLogger) {
+	globalConfig.GetLogger = f
 }
 
 func (codes ErrorCodes) CtxRetError(ctx *fasthttp.RequestCtx, text string) string {
@@ -167,8 +165,8 @@ func (codes ErrorCodes) CtxRetError(ctx *fasthttp.RequestCtx, text string) strin
 		)
 	}
 	logged := ret
-	if getLog != nil {
-		logged = getLog(requrl, "answer_error").Print(ret)
+	if globalConfig.GetLogger != nil {
+		logged = globalConfig.GetLogger(requrl, "answer_error").Print(ret)
 	}
 	return ipv4 + ":[" + string(ctx.Request.RequestURI()) +
 		"] " + text + "\n" + logged
