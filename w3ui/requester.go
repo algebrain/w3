@@ -32,7 +32,6 @@ type DataRequester[T any] struct {
 	sel          w3req.SelectRequester[T]
 	formatFields func([]T)
 	logger       *Logger
-	errorCodes   ErrorCodes
 	onPanic      func()
 }
 
@@ -82,7 +81,6 @@ func NewDataRequester3[T any](
 	allSQL *w3sql.SQLString, //запрос
 	compileMap map[string]string, //карта соответствия фронт аргумент -> sql
 	lowerEm []string, //значения поискового запроса фронта будут to_lower
-	errorCodes map[string]int, //коды ошибок
 	onPanic func(),
 ) *DataRequester[T] {
 	if onPanic == nil {
@@ -104,7 +102,6 @@ func NewDataRequester3[T any](
 
 	return &DataRequester[T]{
 		sel:        req,
-		errorCodes: ErrorCodes(errorCodes),
 		onPanic:    onPanic,
 		logger:     &Logger{},
 	}
@@ -170,7 +167,7 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 	switch t := req.(type) {
 	case *http.Request:
 		errout = func(text string) {
-			d.errorCodes.Error(w, text)
+			globalConfig.ErrorCodes.Error(w, text)
 		}
 		successout = func(b []byte) {
 			w.WriteHeader(200)
@@ -180,7 +177,7 @@ func (d *DataRequester[T]) GetFasthttpRequestHandlerInner(
 
 	case *fasthttp.RequestCtx:
 		errout = func(text string) {
-			d.errorCodes.CtxRetError(t, text)
+			globalConfig.ErrorCodes.CtxRetError(t, text)
 		}
 		successout = func(b []byte) {
 			t.Success("application/json", b)

@@ -99,18 +99,12 @@ var compileMap = map[string]string{
 	"secondNameLen": "length(secondName)",
 }
 
-var errorCodes = map[string]int{
-	SYSTEM_ERROR:       1,
-	INVALID_PARAMETERS: 2,
-}
-
 var toLowerCols = []string{"firstName", "secondName"}
 
 var requester1 = NewDataRequester3[Student](
 	allSQL,
 	compileMap,
 	toLowerCols,
-	errorCodes,
 	func() {
 		if r := recover(); r != nil {
 			fmt.Println("=====PANIC:", r)

@@ -1,5 +1,5 @@
-- глобальный конфиг
 - update requester
 - insert requester
 - delete requester
 - getters
+- тест при ошибках в обработке запроса
