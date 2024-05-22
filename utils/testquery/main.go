@@ -1,6 +1,7 @@
-package w3ui
+package main
 
 import (
+	"os"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,10 +10,10 @@ import (
 	"net/http/httptest"
 	"runtime/debug"
 	"strings"
-	"testing"
 
 	"github.com/algebrain/w3/w3req"
 	"github.com/algebrain/w3/w3sql"
+	"github.com/algebrain/w3/w3ui"
 	"gopkg.in/gorp.v1"
 
 	_ "modernc.org/sqlite"
@@ -21,12 +22,12 @@ import (
 type testLogger struct{}
 
 func (t testLogger) Print(s string) string {
-	fmt.Println("=====>>", s)
+	fmt.Fprintln(os.Stderr, "=====>>", s)
 	return s
 }
 
 func (t testLogger) Printf(s string, arg any, args ...any) string {
-	fmt.Printf("=====>> "+s, append([]any{arg}, args...)...)
+	fmt.Fprintln(os.Stderr, append([]any{"=====>> "+s, arg}, args...)...)
 	return s
 }
 
@@ -81,15 +82,6 @@ var cond1 = `{
 	]
 }`
 
-var cond2 = `{
-	"Search": {
-		"Col":  "grade",
-		"Val":  66,
-		"Op":   "==",
-		"Type": "int"
-	}
-}`
-
 var compileMap = map[string]string{
 	"id":            "studentID",
 	"firstName":     "", //значит будет использовано то же самое название колонки
@@ -101,45 +93,48 @@ var compileMap = map[string]string{
 
 var toLowerCols = []string{"firstName", "secondName"}
 
-var requester1 = NewDataRequester3[Student](
+var requester1 = w3ui.NewDataRequester3[Student](
 	allSQL,
 	compileMap,
 	toLowerCols,
 	func() {
 		if r := recover(); r != nil {
-			fmt.Println("=====PANIC:", r)
+			fmt.Fprintln(os.Stderr, "=====PANIC:", r)
 			debug.PrintStack()
 		}
 	},
 )
 
-func openStudents(t *testing.T) *gorp.DbMap {
+func openStudents() (*gorp.DbMap, error) {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	_, err = db.Exec(initStudentsTable)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
 	dbmap.AddTableWithName(Student{}, "students").SetKeys(true, "studentID")
 	err = dbmap.CreateTablesIfNotExists()
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-	return dbmap
+	return dbmap, nil
 }
 
-func TestRequesterSelect(t *testing.T) {
-	db := openStudents(t)
+func main() {
+	db, err := openStudents()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
 
-	requester1.InitOnce(func() RequesterOptions[Student] {
-		requester1.DumpRequests().SetDebugLog(testLogger{})
-		return RequesterOptions[Student]{
+	requester1.InitOnce(func() w3ui.RequesterOptions[Student] {
+		requester1.DumpRequests()
+		return w3ui.RequesterOptions[Student]{
 			GetDB:    func() w3req.DB { return db },
-			ErrorLog: testLogger{},
 			FormatFields: func(r []Student) {
 				for i := 0; i < len(r); i++ {
 					r[i].FirstName = strings.ToUpper(r[i].FirstName)
@@ -147,19 +142,17 @@ func TestRequesterSelect(t *testing.T) {
 			},
 		}
 	})
-
-	var allStudents []Student
-	_, err := db.Select(&allStudents, "select * from students")
-
-	if err != nil {
-		t.Fatal(err)
+	
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, "no query")
+		os.Exit(1)
 	}
+	
+	arg := os.Args[1]
 
-	t.Log("ALL STUDENTS:", GetJSON(allStudents))
-
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(cond2))
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(arg))
 	w := httptest.NewRecorder()
-	handler := requester1.GetHttpRequestHandler(100, MustReadJSON(cond1))
+	handler := requester1.GetHttpRequestHandler(100, w3ui.MustReadJSON(cond1))
 	handler(w, req)
 
 	var answer struct {
@@ -169,17 +162,15 @@ func TestRequesterSelect(t *testing.T) {
 	}
 	b, err := io.ReadAll(w.Result().Body)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(3)
 	}
 
 	err = json.Unmarshal(b, &answer)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(4)
 	}
 
-	t.Log("ANSWER:", GetJSON(answer))
-
-	if answer.Total != 3 {
-		t.Fatal("total=3 expected, got", answer.Total)
-	}
+	fmt.Println(w3ui.GetJSON(answer))
 }

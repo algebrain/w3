@@ -47,7 +47,7 @@ func TestCompileUpdate(t *testing.T) {
 	}
 
 	sq, err := q.CompileUpsert("id", fieldMap, beforeCreate)
-	t.Log(getJSON(sq))
+	t.Log(GetJSON(sq))
 
 	if err != nil {
 		t.Fatal(err)

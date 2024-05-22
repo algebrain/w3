@@ -45,7 +45,7 @@ func (log *Logger) setDebugLogger(z ExtLogger) {
 
 func (log *Logger) LogSQL(prefix string, sql string, params map[string]any) {
 	if log.debugLog != nil {
-		log.debugLog.Printf("%s\n<<%s>>\nParameters:\n%+v\n", prefix, sql, getJSON(params))
+		log.debugLog.Printf("%s\n<<%s>>\nParameters:\n%+v\n", prefix, sql, GetJSON(params))
 	}
 }
 
