@@ -76,20 +76,18 @@ export interface DeleteQuery extends QueryBase {
 
 const createAtomaryConditionBuilder = (t: TypeName) => {
   let type_: TypeName | RangeTypeName = t;
-  let cond_: AtomaryCondition;
 
-  const is = (col: string, op: Op, val: Value | Value[]) => {
+  const is = (col: string, op: Op, val: Value | Value[]): AtomaryCondition => {
     if (op === "between") {
       if (NumericTypes.has(type_ as TypeName)) {
         type_ = "numeric";
         if (typeof val !== "number") throw new Error("[AtomaryConditionBuilder.op] number expected");
-        cond_ = {
+        return {
           Col:  col,
           Type: type_,
           Val:  val,
           Op:   op,
         };
-        return;
       }
       
       if (!TimeTypes.has(type_ as TypeName)) {
@@ -98,14 +96,12 @@ const createAtomaryConditionBuilder = (t: TypeName) => {
 
       if (typeof val !== "string") throw new Error("[AtomaryConditionBuilder.op] string for date expected");
 
-      cond_ = {
+      return {
         Col:  col,
         Type: type_,
         Val:  val,
         Op:   op,
       };
-
-      return;
     }
 
     switch (type_) {
@@ -128,7 +124,7 @@ const createAtomaryConditionBuilder = (t: TypeName) => {
         break;
     }
  
-    cond_ = {
+    return {
       Col:  col,
       Type: type_,
       Val:  val,
@@ -138,7 +134,6 @@ const createAtomaryConditionBuilder = (t: TypeName) => {
 
   return {
     is,
-    get cond() { return cond_; },
   }
 }
 
@@ -175,7 +170,8 @@ const createW3Lib = () => {
       if (limit !== undefined) r.Limit = limit;
       if (sort.length > 0) r.Sort = sort;
       return r;
-    }
+    },
+    json(q: QueryBase) { return JSON.stringify(q); },
   }
 };
 

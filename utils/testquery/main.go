@@ -149,6 +149,7 @@ func main() {
 	}
 	
 	arg := os.Args[1]
+	fmt.Println("QUERY:", arg)
 
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(arg))
 	w := httptest.NewRecorder()
