@@ -36,62 +36,71 @@ export interface CompoundCondition {
 
 export type Condition = AtomaryCondition | CompoundCondition;
 
+type SortDirection = "ASC" | "DESC";
+
 interface SortQuery {
 	Col: string;
-	Dir: string;
+	Dir: SortDirection;
 }
 
 export type Key = number | string;
 
-export interface Query {
-	Limit?: number;
-	Offset?: number;
-	Search?: Condition;
-	Sort?:   SortQuery[];
-	Insert?: {
-		Cols :  string[];
-		Values: Value[][];
-	};
-	Update?: {
-		Cols :  string[];
-		Values: Value[][];
-	}
-	Delete?: Key[];
+export interface QueryBase {
 	Params?: {[key: string]: any}; //дополнительные параметры запроса, вне логики SQL
 }
 
+export interface SelectQuery extends QueryBase {
+	Limit?:  number;
+	Offset?: number;
+	Search:  Condition;
+	Sort?:   SortQuery[];
+}
 
-class AtomaryConditionBuilder {
-  private type_: TypeName | RangeTypeName;
-  private cond_?: AtomaryCondition;
+export interface InsertQuery extends QueryBase {
+	Insert: {
+		Cols :  string[];
+		Values: Value[][];
+	};
+}
 
-  constructor(t: TypeName) {
-    this.type_ = t;
-  };
+export interface UpdateQuery extends QueryBase {
+	Update: {
+		Cols :  string[];
+		Values: Value[][];
+	}
+}
 
-  op(op: Op, col: string, val: Value | Value[]) {
+export interface DeleteQuery extends QueryBase {
+	Delete: Key[];
+}
+
+const createAtomaryConditionBuilder = (t: TypeName) => {
+  let type_: TypeName | RangeTypeName = t;
+  let cond_: AtomaryCondition;
+
+  const is = (col: string, op: Op, val: Value | Value[]) => {
     if (op === "between") {
-      if (NumericTypes.has(this.type_ as TypeName)) {
-        this.type_ = "numeric";
-        if (typeof val !== "number") throw new Error("[AtomaryQueryBuilder.op] number expected");
-        this.cond_ = {
+      if (NumericTypes.has(type_ as TypeName)) {
+        type_ = "numeric";
+        if (typeof val !== "number") throw new Error("[AtomaryConditionBuilder.op] number expected");
+        cond_ = {
           Col:  col,
-          Type: this.type_,
+          Type: type_,
           Val:  val,
           Op:   op,
         };
         return;
       }
       
-      if (!TimeTypes.has(this.type_ as TypeName)) {
-        throw new Error("[AtomaryQueryBuilder.op] date or number type of condition expected");
+      if (!TimeTypes.has(type_ as TypeName)) {
+        throw new Error("[AtomaryConditionBuilder.op] date or number type of condition expected");
       }
 
-      if (typeof val !== "string") throw new Error("[AtomaryQueryBuilder.op] string for date expected");
+      if (typeof val !== "string") throw new Error("[AtomaryConditionBuilder.op] string for date expected");
 
-      this.cond_ = {
+      cond_ = {
         Col:  col,
-        Type: this.type_,
+        Type: type_,
         Val:  val,
         Op:   op,
       };
@@ -99,33 +108,76 @@ class AtomaryConditionBuilder {
       return;
     }
 
-    switch (this.type_) {
+    switch (type_) {
       case "text":
       case "textis":
       case "string":
-        if (typeof val !== "string") throw new Error("[AtomaryQueryBuilder.op] string value expected");
+        if (typeof val !== "string") throw new Error("[AtomaryConditionBuilder.op] string value expected");
         break;
       case "list":
-        if (!Array.isArray(val)) throw new Error("[AtomaryQueryBuilder.op] array value expected");
+        if (!Array.isArray(val)) throw new Error("[AtomaryConditionBuilder.op] array value expected");
         break;
       case "number":
       case "int":
       case "float":
-        if (typeof val !== "number") throw new Error("[AtomaryQueryBuilder.op] number value expected");
+        if (typeof val !== "number") throw new Error("[AtomaryConditionBuilder.op] number value expected");
         break;
       case "date":
       case "datetime":
-        if (typeof val !== "string") throw new Error("[AtomaryQueryBuilder.op] string value expected");
+        if (typeof val !== "string") throw new Error("[AtomaryConditionBuilder.op] string value expected");
         break;
     }
  
-    this.cond_ = {
+    cond_ = {
       Col:  col,
-      Type: this.type_,
+      Type: type_,
       Val:  val,
       Op:   op,
     };
   }
 
-  get cond() { return this.cond_; }
+  return {
+    is,
+    get cond() { return cond_; },
+  }
 }
+
+export type AtomaryConditionBuilder = ReturnType<typeof createAtomaryConditionBuilder>;
+
+const createW3Lib = () => {
+  return {
+    get number() { return createAtomaryConditionBuilder("number"); },
+    get text() { return createAtomaryConditionBuilder("text"); },
+    get textis() { return createAtomaryConditionBuilder("textis"); },
+    get list() { return createAtomaryConditionBuilder("list"); },
+    get string() { return createAtomaryConditionBuilder("string"); },
+    get int() { return createAtomaryConditionBuilder("int"); },
+    get float() { return createAtomaryConditionBuilder("float"); },
+    get date() { return createAtomaryConditionBuilder("date"); },
+    get datetime() { return createAtomaryConditionBuilder("datetime"); },
+
+    or(...args: Condition[]): CompoundCondition {
+      return { Op: "OR", Query: args }
+    },
+    and(...args: Condition[]): CompoundCondition {
+      return { Op: "AND", Query: args }
+    },
+    not(...args: Condition[]): CompoundCondition {
+      return { Op: "NOT", Query: args }
+    },
+
+    asc(col: string): SortQuery { return {Col: col, Dir: "ASC"} },
+    desc(col: string): SortQuery { return {Col: col, Dir: "DESC"} },
+    all(): SelectQuery { return { Search: this.and() } },
+    search(cond: Condition, offset?: number, limit?: number, ...sort: SortQuery[]): SelectQuery {
+      const r: SelectQuery = { Search: cond };
+      if (offset !== undefined) r.Offset = offset;
+      if (limit !== undefined) r.Limit = limit;
+      if (sort.length > 0) r.Sort = sort;
+      return r;
+    }
+  }
+};
+
+const w3 = createW3Lib();
+export default w3;
